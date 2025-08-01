@@ -9,6 +9,7 @@ interface KidContextType {
   setSelectedKid: (kid: Kid) => void;
   kids: Kid[];
   refreshKids: () => void;
+  isLoading: boolean;
 }
 
 const KidContext = createContext<KidContextType | null>(null);
@@ -16,8 +17,10 @@ const KidContext = createContext<KidContextType | null>(null);
 export function KidProvider({ children }: { children: ReactNode }) {
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [kids, setKids] = useState<Kid[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   const refreshKids = async () => {
+    setIsLoading(true);
     const currentKids = await getKids();
     setKids(currentKids);
     
@@ -29,6 +32,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
         setSelectedKid(updated);
       }
     }
+    setIsLoading(false);
   };
   
   useEffect(() => {
@@ -40,7 +44,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
   }, []);
   
   return (
-    <KidContext.Provider value={{ selectedKid, setSelectedKid, kids, refreshKids }}>
+    <KidContext.Provider value={{ selectedKid, setSelectedKid, kids, refreshKids, isLoading }}>
       {children}
     </KidContext.Provider>
   );

@@ -3,25 +3,28 @@
 import { useState, useEffect } from 'react';
 import { Task, Kid, Completions } from '../_lib/types';
 import { useKidContext } from '../_lib/context';
-import { getTasks, getCompletions, setCompletions, setKids, getKids } from '../_lib/storage';
+import { getTasks, getCompletions, updateKid, toggleCompletion } from '../_lib/storage';
 import { applyTaskToggle, getTodayCompletions } from '../_lib/points';
 import { today } from '../_lib/date';
 import { useRouter } from 'next/navigation';
 import { CalendarModal } from './CalendarModal';
 
 export function TaskList() {
-  const { kids, refreshKids, setSelectedKid } = useKidContext();
+  const { kids, refreshKids, setSelectedKid, isLoading: kidsLoading } = useKidContext();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completions, setCompletionsState] = useState<Completions>({});
   const [selectedDate, setSelectedDate] = useState(() => today());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const router = useRouter();
   
   useEffect(() => {
     const loadData = async () => {
+      setIsLoadingTasks(true);
       const allTasks = await getTasks();
       setTasks(allTasks.filter(t => t.active));
       setCompletionsState(await getCompletions());
+      setIsLoadingTasks(false);
     };
     loadData();
   }, []);
@@ -34,11 +37,8 @@ export function TaskList() {
     const updateData = async () => {
       const result = applyTaskToggle(kid, task, checked, completions);
       
-      const allKids = await getKids();
-      const updatedKids = allKids.map(k => k.id === kid.id ? result.kid : k);
-      
-      await setKids(updatedKids);
-      await setCompletions(result.completions);
+      await updateKid(result.kid);
+      await toggleCompletion(kid.id, task.id, selectedDate, checked);
       setCompletionsState(result.completions);
       refreshKids();
     };
@@ -46,6 +46,42 @@ export function TaskList() {
     updateData();
   };
   
+  if (kidsLoading || isLoadingTasks) {
+    return (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-48"></div>
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
+        </div>
+        <div className="grid gap-6 md:grid-cols-3">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="space-y-3">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
+                <div className="space-y-1">
+                  <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+                  <div className="h-3 bg-gray-200 rounded animate-pulse w-12"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {[1, 2, 3, 4].map(j => (
+                  <div key={j} className="card flex items-center gap-3">
+                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
+                    <div className="flex-1 space-y-1">
+                      <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                      <div className="h-3 bg-gray-200 rounded animate-pulse w-12"></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="h-10 bg-gray-200 rounded animate-pulse w-full"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (kids.length === 0) {
     return <div className="text-gray-500">No kids found</div>;
   }

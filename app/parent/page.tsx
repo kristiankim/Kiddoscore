@@ -3,12 +3,12 @@
 import { useState, useEffect } from 'react';
 import { Kid, Task, Reward } from '../_lib/types';
 import { 
-  getKids, setKids, getTasks, setTasks, getRewards, setRewards,
-  getCompletions, setCompletions
+  getKids, getTasks, getRewards, getCompletions, setCompletions,
+  addKid, updateKid, removeKid, addTask, updateTask, removeTask,
+  addReward, updateReward, removeReward
 } from '../_lib/storage';
 import { clearTodayCompletions, clearAllCompletions, recalcPointsFromCompletions } from '../_lib/points';
 import { getWeekRange, isDateInRange } from '../_lib/date';
-import { uid } from '../_lib/ids';
 import { useKidContext } from '../_lib/context';
 import { StatCard } from '../_components/StatCard';
 import { ConfirmDialog } from '../_components/ConfirmDialog';
@@ -33,6 +33,10 @@ export default function ParentPage() {
   const [editTaskTitle, setEditTaskTitle] = useState('');
   const [editTaskPoints, setEditTaskPoints] = useState('');
   const [editTaskAssignedKids, setEditTaskAssignedKids] = useState<string[]>([]);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  const [editRewardLabel, setEditRewardLabel] = useState('');
+  const [editRewardCost, setEditRewardCost] = useState('');
+  const [activeTab, setActiveTab] = useState('kids');
   
   useEffect(() => {
     loadData();
@@ -44,52 +48,49 @@ export default function ParentPage() {
     setRewardsState(await getRewards());
   };
   
-  const addKid = async () => {
+  const addKidHandler = async () => {
     if (newKidName.trim()) {
-      const newKid: Kid = {
-        id: uid(),
+      const result = await addKid({
         name: newKidName.trim(),
         points: 0
-      };
-      const updatedKids = [...kids, newKid];
-      await setKids(updatedKids);
-      setKidsState(updatedKids);
-      setNewKidName('');
-      refreshKids();
+      });
+      if (result) {
+        setNewKidName('');
+        await loadData();
+        refreshKids();
+      }
     }
   };
   
-  const removeKid = async (kidId: string) => {
-    const updatedKids = kids.filter(k => k.id !== kidId);
-    await setKids(updatedKids);
-    setKidsState(updatedKids);
+  const removeKidHandler = async (kidId: string) => {
+    await removeKid(kidId);
+    await loadData();
     refreshKids();
   };
   
   const adjustPoints = async (kidId: string, delta: number) => {
-    const updatedKids = kids.map(k => 
-      k.id === kidId ? { ...k, points: Math.max(0, k.points + delta) } : k
-    );
-    await setKids(updatedKids);
-    setKidsState(updatedKids);
-    refreshKids();
+    const kid = kids.find(k => k.id === kidId);
+    if (kid) {
+      await updateKid({ ...kid, points: Math.max(0, kid.points + delta) });
+      await loadData();
+      refreshKids();
+    }
   };
   
-  const addTask = async () => {
+  const addTaskHandler = async () => {
     if (newTaskTitle.trim() && newTaskPoints) {
-      const newTask: Task = {
-        id: uid(),
+      const result = await addTask({
         title: newTaskTitle.trim(),
         points: parseInt(newTaskPoints),
         active: true,
         assignedKids: newTaskAssignedKids.length > 0 ? newTaskAssignedKids : undefined
-      };
-      const updatedTasks = [...tasks, newTask];
-      await setTasks(updatedTasks);
-      setTasksState(updatedTasks);
-      setNewTaskTitle('');
-      setNewTaskPoints('');
-      setNewTaskAssignedKids([]);
+      });
+      if (result) {
+        setNewTaskTitle('');
+        setNewTaskPoints('');
+        setNewTaskAssignedKids([]);
+        await loadData();
+      }
     }
   };
 
@@ -102,17 +103,16 @@ export default function ParentPage() {
   };
   
   const toggleTask = async (taskId: string) => {
-    const updatedTasks = tasks.map(t => 
-      t.id === taskId ? { ...t, active: !t.active } : t
-    );
-    await setTasks(updatedTasks);
-    setTasksState(updatedTasks);
+    const task = tasks.find(t => t.id === taskId);
+    if (task) {
+      await updateTask({ ...task, active: !task.active });
+      await loadData();
+    }
   };
   
-  const removeTask = async (taskId: string) => {
-    const updatedTasks = tasks.filter(t => t.id !== taskId);
-    await setTasks(updatedTasks);
-    setTasksState(updatedTasks);
+  const removeTaskHandler = async (taskId: string) => {
+    await removeTask(taskId);
+    await loadData();
   };
 
   const openEditTaskModal = (task: Task) => {
@@ -132,19 +132,14 @@ export default function ParentPage() {
   const saveTaskEdit = async () => {
     if (!editingTask || !editTaskTitle.trim() || !editTaskPoints) return;
 
-    const updatedTasks = tasks.map(t => 
-      t.id === editingTask.id 
-        ? {
-            ...t,
-            title: editTaskTitle.trim(),
-            points: parseInt(editTaskPoints),
-            assignedKids: editTaskAssignedKids.length > 0 ? editTaskAssignedKids : undefined
-          }
-        : t
-    );
+    await updateTask({
+      ...editingTask,
+      title: editTaskTitle.trim(),
+      points: parseInt(editTaskPoints),
+      assignedKids: editTaskAssignedKids.length > 0 ? editTaskAssignedKids : undefined
+    });
     
-    await setTasks(updatedTasks);
-    setTasksState(updatedTasks);
+    await loadData();
     closeEditTaskModal();
   };
 
@@ -155,26 +150,49 @@ export default function ParentPage() {
         : [...prev, kidId]
     );
   };
+
+  const openEditRewardModal = (reward: Reward) => {
+    setEditingReward(reward);
+    setEditRewardLabel(reward.label);
+    setEditRewardCost(reward.cost.toString());
+  };
+
+  const closeEditRewardModal = () => {
+    setEditingReward(null);
+    setEditRewardLabel('');
+    setEditRewardCost('');
+  };
+
+  const saveRewardEdit = async () => {
+    if (!editingReward || !editRewardLabel.trim() || !editRewardCost) return;
+
+    await updateReward({
+      ...editingReward,
+      label: editRewardLabel.trim(),
+      cost: parseInt(editRewardCost)
+    });
+    
+    await loadData();
+    closeEditRewardModal();
+  };
   
-  const addReward = async () => {
+  const addRewardHandler = async () => {
     if (newRewardLabel.trim() && newRewardCost) {
-      const newReward: Reward = {
-        id: uid(),
+      const result = await addReward({
         label: newRewardLabel.trim(),
         cost: parseInt(newRewardCost)
-      };
-      const updatedRewards = [...rewards, newReward];
-      await setRewards(updatedRewards);
-      setRewardsState(updatedRewards);
-      setNewRewardLabel('');
-      setNewRewardCost('');
+      });
+      if (result) {
+        setNewRewardLabel('');
+        setNewRewardCost('');
+        await loadData();
+      }
     }
   };
   
-  const removeReward = async (rewardId: string) => {
-    const updatedRewards = rewards.filter(r => r.id !== rewardId);
-    await setRewards(updatedRewards);
-    setRewardsState(updatedRewards);
+  const removeRewardHandler = async (rewardId: string) => {
+    await removeReward(rewardId);
+    await loadData();
   };
   
   const clearKidToday = async (kidId: string) => {
@@ -185,13 +203,9 @@ export default function ParentPage() {
     const clearedCompletions = clearTodayCompletions(kidId, completions);
     const pointsLost = kid.points - recalcPointsFromCompletions(kid, tasks, clearedCompletions);
     
-    const updatedKids = kids.map(k => 
-      k.id === kidId ? { ...k, points: Math.max(0, k.points - pointsLost) } : k
-    );
-    
     await setCompletions(clearedCompletions);
-    await setKids(updatedKids);
-    setKidsState(updatedKids);
+    await updateKid({ ...kid, points: Math.max(0, kid.points - pointsLost) });
+    await loadData();
     refreshKids();
   };
   
@@ -232,8 +246,15 @@ export default function ParentPage() {
     loadWeeklyStats();
   }, [kids, tasks]); // Recalculate when kids or tasks change
   
+  const tabs = [
+    { id: 'kids', label: 'Kids', icon: '👶' },
+    { id: 'tasks', label: 'Tasks', icon: '✅' },
+    { id: 'rewards', label: 'Rewards', icon: '🎁' },
+    { id: 'actions', label: 'Actions', icon: '⚙️' }
+  ];
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-center">
         <h1 className="text-2xl font-bold text-gray-900">Parent Settings</h1>
       </div>
@@ -252,21 +273,43 @@ export default function ParentPage() {
           ))}
         </div>
       </div>
-      
-      {/* Kids Management */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Kids</h2>
+
+      {/* Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                activeTab === tab.id
+                  ? 'border-blue-500 text-blue-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Tab Content */}
+      <div className="min-h-[400px]">
+        {activeTab === 'kids' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Kids</h2>
         
         <div className="flex gap-2">
           <input
             type="text"
             value={newKidName}
             onChange={e => setNewKidName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addKid()}
+            onKeyDown={e => e.key === 'Enter' && addKidHandler()}
             placeholder="Kid name"
             className="input flex-1"
           />
-          <button onClick={addKid} className="btn-primary">
+          <button onClick={addKidHandler} className="btn-primary">
             Add Kid
           </button>
         </div>
@@ -308,11 +351,12 @@ export default function ParentPage() {
             </div>
           ))}
         </div>
-      </div>
-      
-      {/* Tasks Management */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
+          </div>
+        )}
+
+        {activeTab === 'tasks' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Tasks</h2>
         
         <div className="space-y-3">
           <div className="flex gap-2">
@@ -330,7 +374,7 @@ export default function ParentPage() {
               placeholder="Points"
               className="input w-20"
             />
-            <button onClick={addTask} className="btn-primary">
+            <button onClick={addTaskHandler} className="btn-primary">
               Add Task
             </button>
           </div>
@@ -415,11 +459,12 @@ export default function ParentPage() {
             </div>
           ))}
         </div>
-      </div>
-      
-      {/* Rewards Management */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Rewards</h2>
+          </div>
+        )}
+
+        {activeTab === 'rewards' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Rewards</h2>
         
         <div className="flex gap-2">
           <input
@@ -436,7 +481,7 @@ export default function ParentPage() {
             placeholder="Cost"
             className="input w-20"
           />
-          <button onClick={addReward} className="btn-primary">
+          <button onClick={addRewardHandler} className="btn-primary">
             Add Reward
           </button>
         </div>
@@ -449,27 +494,39 @@ export default function ParentPage() {
                 <div className="text-sm text-gray-500">{reward.cost} points</div>
               </div>
               
-              <button
-                onClick={() => setConfirmAction({ type: 'removeReward', data: reward.id })}
-                className="btn-danger text-xs px-2 py-1"
-              >
-                Remove
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => openEditRewardModal(reward)}
+                  className="btn-secondary text-xs px-2 py-1"
+                  title="Edit reward"
+                >
+                  ✏️
+                </button>
+                <button
+                  onClick={() => setConfirmAction({ type: 'removeReward', data: reward.id })}
+                  className="btn-danger text-xs px-2 py-1"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>
-      </div>
-      
-      {/* Actions */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Actions</h2>
-        
-        <button
-          onClick={() => setConfirmAction({ type: 'newWeek' })}
-          className="btn-secondary"
-        >
-          Start New Week
-        </button>
+          </div>
+        )}
+
+        {activeTab === 'actions' && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900">Actions</h2>
+            
+            <button
+              onClick={() => setConfirmAction({ type: 'newWeek' })}
+              className="btn-secondary"
+            >
+              Start New Week
+            </button>
+          </div>
+        )}
       </div>
       
       {/* Edit Task Modal */}
@@ -557,6 +614,67 @@ export default function ParentPage() {
         </div>
       )}
 
+      {/* Edit Reward Modal */}
+      {editingReward && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-900">Edit Reward</h3>
+              <button
+                onClick={closeEditRewardModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Reward Label
+                </label>
+                <input
+                  type="text"
+                  value={editRewardLabel}
+                  onChange={e => setEditRewardLabel(e.target.value)}
+                  className="input w-full"
+                  placeholder="Reward label"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Cost (Points)
+                </label>
+                <input
+                  type="number"
+                  value={editRewardCost}
+                  onChange={e => setEditRewardCost(e.target.value)}
+                  className="input w-full"
+                  placeholder="Cost"
+                />
+              </div>
+            </div>
+            
+            <div className="flex gap-2 pt-4">
+              <button
+                onClick={closeEditRewardModal}
+                className="btn-secondary flex-1"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={saveRewardEdit}
+                className="btn-primary flex-1"
+                disabled={!editRewardLabel.trim() || !editRewardCost}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirm Dialog */}
       {confirmAction && (
         <ConfirmDialog
@@ -565,16 +683,16 @@ export default function ParentPage() {
           onConfirm={() => {
             switch (confirmAction.type) {
               case 'removeKid':
-                removeKid(confirmAction.data);
+                removeKidHandler(confirmAction.data);
                 break;
               case 'clearToday':
                 clearKidToday(confirmAction.data);
                 break;
               case 'removeTask':
-                removeTask(confirmAction.data);
+                removeTaskHandler(confirmAction.data);
                 break;
               case 'removeReward':
-                removeReward(confirmAction.data);
+                removeRewardHandler(confirmAction.data);
                 break;
               case 'newWeek':
                 newWeek();

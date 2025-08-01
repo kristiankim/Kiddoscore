@@ -3,27 +3,61 @@
 import { useState, useEffect } from 'react';
 import { Reward, Redemption } from '../_lib/types';
 import { useKidContext } from '../_lib/context';
-import { getRewards, getRedemptions, setRedemptions, setKids, getKids } from '../_lib/storage';
+import { getRewards, getRedemptions, updateKid, addRedemption, removeRedemption } from '../_lib/storage';
 import { redeemReward } from '../_lib/points';
-import { uid } from '../_lib/ids';
 import { ConfirmDialog } from './ConfirmDialog';
 
 export function RewardList() {
-  const { selectedKid, refreshKids } = useKidContext();
+  const { selectedKid, refreshKids, isLoading: kidsLoading } = useKidContext();
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [redemptions, setRedemptionsState] = useState<Redemption[]>([]);
   const [confirmReward, setConfirmReward] = useState<Reward | null>(null);
   const [confirmCancel, setConfirmCancel] = useState<Redemption | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [isLoadingRewards, setIsLoadingRewards] = useState(true);
   
   useEffect(() => {
     const loadData = async () => {
+      setIsLoadingRewards(true);
       setRewards(await getRewards());
       setRedemptionsState(await getRedemptions());
+      setIsLoadingRewards(false);
     };
     loadData();
   }, []);
   
+  if (kidsLoading || isLoadingRewards) {
+    return (
+      <div className="space-y-6">
+        <div className="space-y-3">
+          <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+          
+          <div className="flex items-center gap-3 p-4 bg-gray-100 rounded-lg">
+            <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+            <div className="space-y-1">
+              <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
+              <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
+            </div>
+          </div>
+          
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="card">
+                <div className="flex flex-col gap-3">
+                  <div className="space-y-1">
+                    <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
+                    <div className="h-3 bg-gray-200 rounded animate-pulse w-16"></div>
+                  </div>
+                  <div className="h-9 bg-gray-200 rounded animate-pulse w-full"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!selectedKid) {
     return <div className="text-gray-500">Select a kid to see rewards</div>;
   }
@@ -39,23 +73,20 @@ export function RewardList() {
     try {
       const updatedKid = redeemReward(selectedKid, reward.cost);
       
-      const kids = await getKids();
-      const updatedKids = kids.map(k => k.id === selectedKid.id ? updatedKid : k);
-      await setKids(updatedKids);
+      await updateKid(updatedKid);
       
-      const newRedemption: Redemption = {
-        id: uid(),
+      const newRedemption = await addRedemption({
         kidId: selectedKid.id,
         rewardId: reward.id,
         label: reward.label,
         cost: reward.cost,
         at: new Date().toISOString()
-      };
+      });
       
-      const currentRedemptions = await getRedemptions();
-      const updatedRedemptions = [newRedemption, ...currentRedemptions];
-      await setRedemptions(updatedRedemptions);
-      setRedemptionsState(updatedRedemptions);
+      if (newRedemption) {
+        const currentRedemptions = await getRedemptions();
+        setRedemptionsState(currentRedemptions);
+      }
       
       refreshKids();
       setConfirmReward(null);
@@ -72,18 +103,11 @@ export function RewardList() {
       if (!selectedKid) return;
       
       // Add points back to the kid
-      const kids = await getKids();
-      const updatedKids = kids.map(k => 
-        k.id === selectedKid.id 
-          ? { ...k, points: k.points + redemption.cost }
-          : k
-      );
-      await setKids(updatedKids);
+      await updateKid({ ...selectedKid, points: selectedKid.points + redemption.cost });
       
       // Remove the redemption
-      const allRedemptions = await getRedemptions();
-      const updatedRedemptions = allRedemptions.filter(r => r.id !== redemption.id);
-      await setRedemptions(updatedRedemptions);
+      await removeRedemption(redemption.id);
+      const updatedRedemptions = await getRedemptions();
       setRedemptionsState(updatedRedemptions);
       
       refreshKids();
