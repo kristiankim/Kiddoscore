@@ -17,8 +17,8 @@ export function KidProvider({ children }: { children: ReactNode }) {
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [kids, setKids] = useState<Kid[]>([]);
   
-  const refreshKids = () => {
-    const currentKids = getKids();
+  const refreshKids = async () => {
+    const currentKids = await getKids();
     setKids(currentKids);
     
     if (!selectedKid && currentKids.length > 0) {
@@ -32,8 +32,11 @@ export function KidProvider({ children }: { children: ReactNode }) {
   };
   
   useEffect(() => {
-    seedData();
-    refreshKids();
+    const initializeData = async () => {
+      await seedData();
+      await refreshKids();
+    };
+    initializeData();
   }, []);
   
   return (

@@ -38,13 +38,13 @@ export default function ParentPage() {
     loadData();
   }, []);
   
-  const loadData = () => {
-    setKidsState(getKids());
-    setTasksState(getTasks());
-    setRewardsState(getRewards());
+  const loadData = async () => {
+    setKidsState(await getKids());
+    setTasksState(await getTasks());
+    setRewardsState(await getRewards());
   };
   
-  const addKid = () => {
+  const addKid = async () => {
     if (newKidName.trim()) {
       const newKid: Kid = {
         id: uid(),
@@ -52,30 +52,30 @@ export default function ParentPage() {
         points: 0
       };
       const updatedKids = [...kids, newKid];
-      setKids(updatedKids);
+      await setKids(updatedKids);
       setKidsState(updatedKids);
       setNewKidName('');
       refreshKids();
     }
   };
   
-  const removeKid = (kidId: string) => {
+  const removeKid = async (kidId: string) => {
     const updatedKids = kids.filter(k => k.id !== kidId);
-    setKids(updatedKids);
+    await setKids(updatedKids);
     setKidsState(updatedKids);
     refreshKids();
   };
   
-  const adjustPoints = (kidId: string, delta: number) => {
+  const adjustPoints = async (kidId: string, delta: number) => {
     const updatedKids = kids.map(k => 
       k.id === kidId ? { ...k, points: Math.max(0, k.points + delta) } : k
     );
-    setKids(updatedKids);
+    await setKids(updatedKids);
     setKidsState(updatedKids);
     refreshKids();
   };
   
-  const addTask = () => {
+  const addTask = async () => {
     if (newTaskTitle.trim() && newTaskPoints) {
       const newTask: Task = {
         id: uid(),
@@ -85,7 +85,7 @@ export default function ParentPage() {
         assignedKids: newTaskAssignedKids.length > 0 ? newTaskAssignedKids : undefined
       };
       const updatedTasks = [...tasks, newTask];
-      setTasks(updatedTasks);
+      await setTasks(updatedTasks);
       setTasksState(updatedTasks);
       setNewTaskTitle('');
       setNewTaskPoints('');
@@ -101,17 +101,17 @@ export default function ParentPage() {
     );
   };
   
-  const toggleTask = (taskId: string) => {
+  const toggleTask = async (taskId: string) => {
     const updatedTasks = tasks.map(t => 
       t.id === taskId ? { ...t, active: !t.active } : t
     );
-    setTasks(updatedTasks);
+    await setTasks(updatedTasks);
     setTasksState(updatedTasks);
   };
   
-  const removeTask = (taskId: string) => {
+  const removeTask = async (taskId: string) => {
     const updatedTasks = tasks.filter(t => t.id !== taskId);
-    setTasks(updatedTasks);
+    await setTasks(updatedTasks);
     setTasksState(updatedTasks);
   };
 
@@ -129,7 +129,7 @@ export default function ParentPage() {
     setEditTaskAssignedKids([]);
   };
 
-  const saveTaskEdit = () => {
+  const saveTaskEdit = async () => {
     if (!editingTask || !editTaskTitle.trim() || !editTaskPoints) return;
 
     const updatedTasks = tasks.map(t => 
@@ -143,7 +143,7 @@ export default function ParentPage() {
         : t
     );
     
-    setTasks(updatedTasks);
+    await setTasks(updatedTasks);
     setTasksState(updatedTasks);
     closeEditTaskModal();
   };
@@ -156,7 +156,7 @@ export default function ParentPage() {
     );
   };
   
-  const addReward = () => {
+  const addReward = async () => {
     if (newRewardLabel.trim() && newRewardCost) {
       const newReward: Reward = {
         id: uid(),
@@ -164,21 +164,21 @@ export default function ParentPage() {
         cost: parseInt(newRewardCost)
       };
       const updatedRewards = [...rewards, newReward];
-      setRewards(updatedRewards);
+      await setRewards(updatedRewards);
       setRewardsState(updatedRewards);
       setNewRewardLabel('');
       setNewRewardCost('');
     }
   };
   
-  const removeReward = (rewardId: string) => {
+  const removeReward = async (rewardId: string) => {
     const updatedRewards = rewards.filter(r => r.id !== rewardId);
-    setRewards(updatedRewards);
+    await setRewards(updatedRewards);
     setRewardsState(updatedRewards);
   };
   
-  const clearKidToday = (kidId: string) => {
-    const completions = getCompletions();
+  const clearKidToday = async (kidId: string) => {
+    const completions = await getCompletions();
     const kid = kids.find(k => k.id === kidId);
     if (!kid) return;
     
@@ -189,19 +189,19 @@ export default function ParentPage() {
       k.id === kidId ? { ...k, points: Math.max(0, k.points - pointsLost) } : k
     );
     
-    setCompletions(clearedCompletions);
-    setKids(updatedKids);
+    await setCompletions(clearedCompletions);
+    await setKids(updatedKids);
     setKidsState(updatedKids);
     refreshKids();
   };
   
-  const newWeek = () => {
-    setCompletions(clearAllCompletions());
+  const newWeek = async () => {
+    await setCompletions(clearAllCompletions());
   };
   
-  const getWeeklyStats = () => {
+  const getWeeklyStats = async () => {
     const { start, end } = getWeekRange();
-    const completions = getCompletions();
+    const completions = await getCompletions();
     
     return kids.map(kid => {
       let weekPoints = 0;
@@ -222,7 +222,15 @@ export default function ParentPage() {
     });
   };
   
-  const weeklyStats = getWeeklyStats();
+  const [weeklyStats, setWeeklyStats] = useState<{ kid: Kid; weekPoints: number }[]>([]);
+  
+  useEffect(() => {
+    const loadWeeklyStats = async () => {
+      const stats = await getWeeklyStats();
+      setWeeklyStats(stats);
+    };
+    loadWeeklyStats();
+  }, [kids, tasks]); // Recalculate when kids or tasks change
   
   return (
     <div className="space-y-8">

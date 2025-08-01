@@ -1,6 +1,15 @@
 import { Kid, Task, Reward, Redemption, Completions } from './types';
 import { uid } from './ids';
 
+// Check if Supabase is configured
+const useSupabase = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+// Conditionally import Supabase functions
+let supabaseStorage: any = null;
+if (useSupabase) {
+  supabaseStorage = require('./supabase-storage');
+}
+
 const STORAGE_KEYS = {
   kids: 'kiddo-score:kids',
   tasks: 'kiddo-score:tasks',
@@ -35,43 +44,73 @@ function safeSet<T>(key: string, value: T): void {
   }
 }
 
-export function getKids(): Kid[] {
+export async function getKids(): Promise<Kid[]> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.getKids();
+  }
   return safeGet(STORAGE_KEYS.kids, []);
 }
 
-export function setKids(kids: Kid[]): void {
+export async function setKids(kids: Kid[]): Promise<void> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.setKids(kids);
+  }
   safeSet(STORAGE_KEYS.kids, kids);
 }
 
-export function getTasks(): Task[] {
+export async function getTasks(): Promise<Task[]> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.getTasks();
+  }
   return safeGet(STORAGE_KEYS.tasks, []);
 }
 
-export function setTasks(tasks: Task[]): void {
+export async function setTasks(tasks: Task[]): Promise<void> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.setTasks(tasks);
+  }
   safeSet(STORAGE_KEYS.tasks, tasks);
 }
 
-export function getRewards(): Reward[] {
+export async function getRewards(): Promise<Reward[]> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.getRewards();
+  }
   return safeGet(STORAGE_KEYS.rewards, []);
 }
 
-export function setRewards(rewards: Reward[]): void {
+export async function setRewards(rewards: Reward[]): Promise<void> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.setRewards(rewards);
+  }
   safeSet(STORAGE_KEYS.rewards, rewards);
 }
 
-export function getCompletions(): Completions {
+export async function getCompletions(): Promise<Completions> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.getCompletions();
+  }
   return safeGet(STORAGE_KEYS.completions, {});
 }
 
-export function setCompletions(completions: Completions): void {
+export async function setCompletions(completions: Completions): Promise<void> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.setCompletions(completions);
+  }
   safeSet(STORAGE_KEYS.completions, completions);
 }
 
-export function getRedemptions(): Redemption[] {
+export async function getRedemptions(): Promise<Redemption[]> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.getRedemptions();
+  }
   return safeGet(STORAGE_KEYS.redemptions, []);
 }
 
-export function setRedemptions(redemptions: Redemption[]): void {
+export async function setRedemptions(redemptions: Redemption[]): Promise<void> {
+  if (useSupabase && supabaseStorage) {
+    return await supabaseStorage.setRedemptions(redemptions);
+  }
   safeSet(STORAGE_KEYS.redemptions, redemptions);
 }
 
@@ -90,34 +129,37 @@ export function verifyPasscode(passcode: string): boolean {
   return btoa(passcode) === stored;
 }
 
-export function seedData(): void {
+export async function seedData(): Promise<void> {
   if (!isClient()) return;
   
-  if (getKids().length === 0) {
-    const kids: Kid[] = [
+  const kids = await getKids();
+  if (kids.length === 0) {
+    const seedKids: Kid[] = [
       { id: uid(), name: 'Eli', points: 50 },
       { id: uid(), name: 'Ethan', points: 35 },
       { id: uid(), name: 'Eleanor', points: 60 },
     ];
-    setKids(kids);
+    await setKids(seedKids);
   }
   
-  if (getTasks().length === 0) {
-    const tasks: Task[] = [
+  const tasks = await getTasks();
+  if (tasks.length === 0) {
+    const seedTasks: Task[] = [
       { id: uid(), title: 'Do math workbook', points: 10, active: true },
       { id: uid(), title: 'Clean room', points: 8, active: true },
       { id: uid(), title: 'Put clothes in hamper', points: 5, active: true },
       { id: uid(), title: 'Put away dishes', points: 7, active: true },
     ];
-    setTasks(tasks);
+    await setTasks(seedTasks);
   }
   
-  if (getRewards().length === 0) {
-    const rewards: Reward[] = [
+  const rewards = await getRewards();
+  if (rewards.length === 0) {
+    const seedRewards: Reward[] = [
       { id: uid(), label: '15 min YouTube Kids', cost: 20 },
       { id: uid(), label: '30 min Game Time', cost: 30 },
       { id: uid(), label: 'Pick a dessert', cost: 25 },
     ];
-    setRewards(rewards);
+    await setRewards(seedRewards);
   }
 }

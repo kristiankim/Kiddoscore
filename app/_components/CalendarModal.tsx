@@ -2,6 +2,13 @@
 
 import { useState, useEffect } from 'react';
 
+function toLocalDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 interface CalendarModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,7 +52,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
   };
 
   const isSelected = (date: Date) => {
-    return date.toISOString().slice(0, 10) === selectedDate;
+    return toLocalDateString(date) === selectedDate;
   };
 
   const isCurrentMonth = (date: Date) => {
@@ -67,7 +74,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
   const handleDateClick = (date: Date) => {
     if (isFutureDate(date)) return;
     
-    const dateString = date.toISOString().slice(0, 10);
+    const dateString = toLocalDateString(date);
     onDateSelect(dateString);
     onClose();
   };
@@ -156,7 +163,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
         <div className="mt-4 flex gap-2 justify-end">
           <button
             onClick={() => {
-              const todayString = today.toISOString().slice(0, 10);
+              const todayString = toLocalDateString(today);
               onDateSelect(todayString);
               onClose();
             }}

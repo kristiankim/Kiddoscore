@@ -1,0 +1,51 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Database types
+export interface DatabaseKid {
+  id: string;
+  name: string;
+  avatar?: string;
+  points: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DatabaseTask {
+  id: string;
+  title: string;
+  points: number;
+  active: boolean;
+  assigned_kids?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DatabaseReward {
+  id: string;
+  label: string;
+  cost: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DatabaseRedemption {
+  id: string;
+  kid_id: string;
+  reward_id: string;
+  label: string;
+  cost: number;
+  redeemed_at: string;
+}
+
+export interface DatabaseCompletion {
+  id: string;
+  kid_id: string;
+  task_id: string;
+  completed_date: string;
+  created_at?: string;
+}

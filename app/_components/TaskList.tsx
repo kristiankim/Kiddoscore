@@ -1,40 +1,49 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Task, Kid } from '../_lib/types';
+import { Task, Kid, Completions } from '../_lib/types';
 import { useKidContext } from '../_lib/context';
 import { getTasks, getCompletions, setCompletions, setKids, getKids } from '../_lib/storage';
 import { applyTaskToggle, getTodayCompletions } from '../_lib/points';
+import { today } from '../_lib/date';
 import { useRouter } from 'next/navigation';
 import { CalendarModal } from './CalendarModal';
 
 export function TaskList() {
   const { kids, refreshKids, setSelectedKid } = useKidContext();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [completions, setCompletionsState] = useState(getCompletions());
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [completions, setCompletionsState] = useState<Completions>({});
+  const [selectedDate, setSelectedDate] = useState(() => today());
   const [showCalendar, setShowCalendar] = useState(false);
   const router = useRouter();
   
   useEffect(() => {
-    setTasks(getTasks().filter(t => t.active));
-    setCompletionsState(getCompletions());
+    const loadData = async () => {
+      const allTasks = await getTasks();
+      setTasks(allTasks.filter(t => t.active));
+      setCompletionsState(await getCompletions());
+    };
+    loadData();
   }, []);
   
   const handleTaskToggle = (kid: Kid, task: Task, checked: boolean) => {
     // Only allow toggling for today's date
-    const today = new Date().toISOString().slice(0, 10);
-    if (selectedDate !== today) return;
+    const todayDate = today();
+    if (selectedDate !== todayDate) return;
     
-    const result = applyTaskToggle(kid, task, checked, completions);
+    const updateData = async () => {
+      const result = applyTaskToggle(kid, task, checked, completions);
+      
+      const allKids = await getKids();
+      const updatedKids = allKids.map(k => k.id === kid.id ? result.kid : k);
+      
+      await setKids(updatedKids);
+      await setCompletions(result.completions);
+      setCompletionsState(result.completions);
+      refreshKids();
+    };
     
-    const allKids = getKids();
-    const updatedKids = allKids.map(k => k.id === kid.id ? result.kid : k);
-    
-    setKids(updatedKids);
-    setCompletions(result.completions);
-    setCompletionsState(result.completions);
-    refreshKids();
+    updateData();
   };
   
   if (kids.length === 0) {
@@ -53,8 +62,7 @@ export function TaskList() {
   };
 
   const isToday = () => {
-    const today = new Date().toISOString().slice(0, 10);
-    return selectedDate === today;
+    return selectedDate === today();
   };
 
   const getDateCompletions = (kidId: string) => {
@@ -68,7 +76,7 @@ export function TaskList() {
         <div className="flex items-center gap-3">
           {!isToday() && (
             <button
-              onClick={() => setSelectedDate(new Date().toISOString().slice(0, 10))}
+              onClick={() => setSelectedDate(today())}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium"
             >
               View today

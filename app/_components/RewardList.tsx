@@ -17,8 +17,11 @@ export function RewardList() {
   const [showConfetti, setShowConfetti] = useState(false);
   
   useEffect(() => {
-    setRewards(getRewards());
-    setRedemptionsState(getRedemptions());
+    const loadData = async () => {
+      setRewards(await getRewards());
+      setRedemptionsState(await getRedemptions());
+    };
+    loadData();
   }, []);
   
   if (!selectedKid) {
@@ -36,9 +39,9 @@ export function RewardList() {
     try {
       const updatedKid = redeemReward(selectedKid, reward.cost);
       
-      const kids = getKids();
+      const kids = await getKids();
       const updatedKids = kids.map(k => k.id === selectedKid.id ? updatedKid : k);
-      setKids(updatedKids);
+      await setKids(updatedKids);
       
       const newRedemption: Redemption = {
         id: uid(),
@@ -49,8 +52,9 @@ export function RewardList() {
         at: new Date().toISOString()
       };
       
-      const updatedRedemptions = [newRedemption, ...getRedemptions()];
-      setRedemptions(updatedRedemptions);
+      const currentRedemptions = await getRedemptions();
+      const updatedRedemptions = [newRedemption, ...currentRedemptions];
+      await setRedemptions(updatedRedemptions);
       setRedemptionsState(updatedRedemptions);
       
       refreshKids();
@@ -63,23 +67,23 @@ export function RewardList() {
     }
   };
 
-  const handleCancelRedemption = (redemption: Redemption) => {
+  const handleCancelRedemption = async (redemption: Redemption) => {
     try {
       if (!selectedKid) return;
       
       // Add points back to the kid
-      const kids = getKids();
+      const kids = await getKids();
       const updatedKids = kids.map(k => 
         k.id === selectedKid.id 
           ? { ...k, points: k.points + redemption.cost }
           : k
       );
-      setKids(updatedKids);
+      await setKids(updatedKids);
       
       // Remove the redemption
-      const allRedemptions = getRedemptions();
+      const allRedemptions = await getRedemptions();
       const updatedRedemptions = allRedemptions.filter(r => r.id !== redemption.id);
-      setRedemptions(updatedRedemptions);
+      await setRedemptions(updatedRedemptions);
       setRedemptionsState(updatedRedemptions);
       
       refreshKids();
