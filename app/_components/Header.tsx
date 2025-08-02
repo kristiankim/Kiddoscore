@@ -2,12 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { useAuth } from '../_lib/auth';
 
 export function Header() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pin, setPin] = useState('');
   const router = useRouter();
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
 
   const handlePinSubmit = () => {
     if (pin.length === 4) {
@@ -43,13 +45,36 @@ export function Header() {
             >
               ← Back to app
             </button>
+          ) : user ? (
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => setShowPinModal(true)}
+                className="btn-secondary text-sm"
+              >
+                Manage
+              </button>
+              <button
+                onClick={() => signOut()}
+                className="text-sm text-gray-600 hover:text-gray-800"
+              >
+                Sign Out
+              </button>
+            </div>
           ) : (
-            <button
-              onClick={() => setShowPinModal(true)}
-              className="btn-secondary text-sm"
-            >
-              Manage
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => router.push('/auth/signin')}
+                className="btn-secondary text-sm"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => router.push('/auth/signup')}
+                className="btn-primary text-sm"
+              >
+                Sign Up
+              </button>
+            </div>
           )}
         </div>
       </header>
