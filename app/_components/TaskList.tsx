@@ -137,7 +137,7 @@ export function TaskList() {
             return (
               <div key={kid.id} className="space-y-3">
                 <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-800">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white" style={{backgroundColor: '#4B2EDE'}}>
                     {kid.avatar || kid.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -158,7 +158,8 @@ export function TaskList() {
                         key={`${kid.id}-${task.id}`}
                         className={`card flex items-center gap-3 transition-colors ${
                           canToggle ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'
-                        } ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}
+                        } ${isCompleted ? 'border-2' : ''}`}
+                        style={isCompleted ? {backgroundColor: 'rgba(0, 200, 120, 0.1)', borderColor: '#00C878'} : {}}
                       >
                         <input
                           type="checkbox"

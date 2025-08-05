@@ -256,12 +256,12 @@ export default function ParentPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-gray-900">Parent Settings</h1>
+        <h1 className="text-2xl font-bold" style={{color: '#3100A0'}}>Parent Settings</h1>
       </div>
       
       {/* Weekly Stats */}
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-gray-900">This Week's Progress</h2>
+        <h2 className="text-lg font-semibold" style={{color: '#3100A0'}}>This Week's Progress</h2>
         <div className="grid gap-3 sm:grid-cols-3">
           {weeklyStats.map(({ kid, weekPoints }) => (
             <StatCard

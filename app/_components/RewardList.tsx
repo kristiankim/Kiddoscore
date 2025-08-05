@@ -123,13 +123,13 @@ export function RewardList() {
         <h2 className="text-lg font-semibold text-gray-900">Rewards</h2>
         
         {selectedKid && (
-          <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-sm font-medium text-blue-800">
+          <div className="flex items-center gap-3 p-4 rounded-lg border" style={{backgroundColor: 'rgba(75, 46, 222, 0.1)', borderColor: '#4B2EDE'}}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white" style={{backgroundColor: '#4B2EDE'}}>
               {selectedKid.avatar || selectedKid.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="font-medium text-gray-900">{selectedKid.name}</div>
-              <div className="text-sm text-blue-600 font-medium">{selectedKid.points} points available</div>
+              <div className="text-sm font-medium" style={{color: '#4B2EDE'}}>{selectedKid.points} points available</div>
             </div>
           </div>
         )}

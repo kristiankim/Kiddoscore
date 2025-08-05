@@ -14,6 +14,8 @@
   body {
     margin: 0;
     padding: 0;
+    background-color: #FFFFFF; /* primaryBackground */
+    color: #333333; /* bodyText */
   }
 }
 
@@ -23,15 +25,20 @@
   }
   
   .btn-primary {
-    @apply btn bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+    @apply btn text-white hover:bg-primary-600 focus:ring-primary-500;
+    background-color: #4B2EDE; /* ctaColor */
   }
   
   .btn-secondary {
-    @apply btn bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-500;
+    @apply btn hover:bg-gray-300 focus:ring-gray-500;
+    background-color: #F7F7F7; /* secondaryBackground */
+    color: #333333; /* bodyText */
   }
   
   .btn-success {
-    @apply btn bg-green-600 text-white hover:bg-green-700 focus:ring-green-500;
+    @apply btn text-white hover:opacity-90 focus:ring-2;
+    background-color: #00C878; /* accentColorGreen */
+    --tw-ring-color: #00C878;
   }
   
   .btn-danger {
@@ -39,11 +46,14 @@
   }
   
   .card {
-    @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+    @apply rounded-lg shadow-sm border border-gray-200 p-4;
+    background-color: #FFFFFF; /* primaryBackground */
   }
   
   .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-primary-500;
+    background-color: #FFFFFF; /* primaryBackground */
+    --tw-ring-color: #4B2EDE; /* ctaColor */
   }
 }
 
@@ -51,11 +61,11 @@
   position: absolute;
   width: 8px;
   height: 8px;
-  background: #fbbf24;
+  background: #FFD700; /* accentColorYellow */
   animation: confetti 0.6s ease-out forwards;
 }
 
-.confetti-particle:nth-child(2) { background: #3b82f6; animation-delay: 0.1s; }
-.confetti-particle:nth-child(3) { background: #ef4444; animation-delay: 0.2s; }
-.confetti-particle:nth-child(4) { background: #10b981; animation-delay: 0.3s; }
-.confetti-particle:nth-child(5) { background: #8b5cf6; animation-delay: 0.4s; }
+.confetti-particle:nth-child(2) { background: #4B2EDE; animation-delay: 0.1s; } /* ctaColor */
+.confetti-particle:nth-child(3) { background: #00C878; animation-delay: 0.2s; } /* accentColorGreen */
+.confetti-particle:nth-child(4) { background: #FFD700; animation-delay: 0.3s; } /* accentColorYellow */
+.confetti-particle:nth-child(5) { background: #3100A0; animation-delay: 0.4s; } /* headerText */
