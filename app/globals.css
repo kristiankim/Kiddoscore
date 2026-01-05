@@ -2,70 +2,196 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  /* Color Palette - HSL for easy transparency */
+  --brand: 250 75% 55%;
+  --brand-dark: 250 75% 35%;
+  --brand-light: 250 75% 95%;
+
+  --success: 156 100% 39%;
+  --success-light: 156 100% 96%;
+
+  --warning: 45 100% 50%;
+  --warning-light: 45 100% 96%;
+
+  --danger: 0 84% 60%;
+  --danger-light: 0 84% 97%;
+
+  --info: 210 100% 50%;
+  --info-light: 210 100% 97%;
+
+  --bg: 0 0% 100%;
+  --bg-secondary: 250 20% 98%;
+  --text: 220 20% 15%;
+  --text-muted: 220 10% 45%;
+
+  --card-border: 220 15% 90%;
+  --glass-bg: 0 0% 100% / 0.7;
+  --glass-border: 0 0% 100% / 0.5;
+}
+
 @layer base {
   * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
   }
-  
+
   html {
-    font-family: system-ui, sans-serif;
+    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    scroll-behavior: smooth;
   }
-  
+
   body {
     margin: 0;
     padding: 0;
-    background-color: #FFFFFF; /* primaryBackground */
-    color: #333333; /* bodyText */
+    background-color: hsl(var(--bg-secondary));
+    color: hsl(var(--text));
+    min-height: 100vh;
   }
 }
 
 @layer components {
   .btn {
-    @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center px-5 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98];
   }
-  
+
   .btn-primary {
-    @apply btn text-white hover:bg-primary-600 focus:ring-primary-500;
-    background-color: #4B2EDE; /* ctaColor */
+    @apply btn text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300;
+    background-color: hsl(var(--brand));
+    --tw-ring-color: hsl(var(--brand));
   }
-  
+
+  .btn-primary:hover {
+    background-color: hsl(var(--brand-dark));
+  }
+
   .btn-secondary {
-    @apply btn hover:bg-gray-300 focus:ring-gray-500;
-    background-color: #F7F7F7; /* secondaryBackground */
-    color: #333333; /* bodyText */
+    @apply btn border border-gray-200 hover:bg-gray-50 focus:ring-gray-200;
+    background-color: hsl(var(--bg));
+    color: hsl(var(--text));
   }
-  
+
   .btn-success {
-    @apply btn text-white hover:opacity-90 focus:ring-2;
-    background-color: #00C878; /* accentColorGreen */
-    --tw-ring-color: #00C878;
+    @apply btn text-white shadow-lg shadow-emerald-100 hover:opacity-90;
+    background-color: hsl(var(--success));
+    --tw-ring-color: hsl(var(--success));
   }
-  
+
   .btn-danger {
-    @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    @apply btn text-white shadow-lg shadow-red-100 hover:bg-red-600;
+    background-color: hsl(var(--danger));
+    --tw-ring-color: hsl(var(--danger));
   }
-  
+
   .card {
-    @apply rounded-lg shadow-sm border border-gray-200 p-4;
-    background-color: #FFFFFF; /* primaryBackground */
+    @apply rounded-2xl border border-gray-100 p-5 transition-all duration-300;
+    background-color: hsl(var(--bg));
+    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
   }
-  
+
+  .card-flat {
+    @apply rounded-2xl border border-gray-100 p-5 transition-all duration-300;
+    background-color: hsl(var(--bg));
+    box-shadow: none;
+  }
+
+  .glass-card {
+    @apply rounded-2xl border p-5 backdrop-blur-md transition-all duration-300;
+    background-color: hsl(var(--glass-bg));
+    border-color: hsl(var(--glass-border));
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
+  }
+
+  .glass-header {
+    @apply sticky top-0 z-40 backdrop-blur-lg border-b;
+    background-color: hsla(0, 0%, 100%, 0.8);
+    border-color: hsla(250, 20%, 90%, 0.5);
+  }
+
   .input {
-    @apply block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:border-primary-500;
-    background-color: #FFFFFF; /* primaryBackground */
-    --tw-ring-color: #4B2EDE; /* ctaColor */
+    @apply block w-full px-4 py-3 border border-gray-200 rounded-xl transition-all focus:outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-400;
+    background-color: hsl(var(--bg));
   }
+}
+
+/* Animations */
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
 }
 
 .confetti-particle {
   position: absolute;
-  width: 8px;
-  height: 8px;
-  background: #FFD700; /* accentColorYellow */
-  animation: confetti 0.6s ease-out forwards;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  animation: confetti 0.8s cubic-bezier(0, 0.9, 0.3, 1) forwards;
 }
 
-.confetti-particle:nth-child(2) { background: #4B2EDE; animation-delay: 0.1s; } /* ctaColor */
-.confetti-particle:nth-child(3) { background: #00C878; animation-delay: 0.2s; } /* accentColorGreen */
-.confetti-particle:nth-child(4) { background: #FFD700; animation-delay: 0.3s; } /* accentColorYellow */
-.confetti-particle:nth-child(5) { background: #3100A0; animation-delay: 0.4s; } /* headerText */
+@keyframes confetti {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.5) rotate(180deg) translateY(100px);
+    opacity: 0;
+  }
+}
+
+.confetti-particle:nth-child(1) {
+  background: hsl(var(--brand));
+  animation-delay: 0s;
+}
+
+.confetti-particle:nth-child(2) {
+  background: hsl(var(--success));
+  animation-delay: 0.1s;
+}
+
+.confetti-particle:nth-child(3) {
+  background: hsl(var(--warning));
+  animation-delay: 0.2s;
+}
+
+.confetti-particle:nth-child(4) {
+  background: hsl(var(--info));
+  animation-delay: 0.3s;
+}
+
+.confetti-particle:nth-child(5) {
+  background: hsl(var(--danger));
+  animation-delay: 0.4s;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--card-border));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--text-muted));
+}

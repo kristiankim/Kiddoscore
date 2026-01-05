@@ -1,5 +1,15 @@
 import { Kid, Task, Reward, Redemption, Completions } from './types';
 import { supabase, DatabaseKid, DatabaseTask, DatabaseReward, DatabaseRedemption, DatabaseCompletion } from './supabase';
+import { setBackendOffline } from './connectivity';
+
+// Helper to handle Supabase errors and trigger offline mode if needed
+function handleSupabaseError(error: any, context: string) {
+  console.error(`Supabase error (${context}):`, error);
+  // If it's a fetch error (unreachable), trigger offline mode
+  if (error.message?.includes('Failed to fetch') || error.code === 'PGRST301') {
+    setBackendOffline(true);
+  }
+}
 
 // Transform database types to app types
 function transformKid(dbKid: DatabaseKid): Kid {
@@ -46,12 +56,12 @@ export async function getKids(): Promise<Kid[]> {
     .from('kids')
     .select('*')
     .order('name');
-  
+
   if (error) {
-    console.error('Error fetching kids:', error);
+    handleSupabaseError(error, 'fetching kids');
     return [];
   }
-  
+
   return data.map(transformKid);
 }
 
@@ -73,12 +83,12 @@ export async function addKid(kid: Omit<Kid, 'id'>): Promise<Kid | null> {
     }])
     .select()
     .single();
-  
+
   if (error) {
     console.error('Error adding kid:', error);
     return null;
   }
-  
+
   return transformKid(data);
 }
 
@@ -91,7 +101,7 @@ export async function updateKid(kid: Kid): Promise<void> {
       points: kid.points
     })
     .eq('id', kid.id);
-  
+
   if (error) {
     console.error('Error updating kid:', error);
   }
@@ -102,7 +112,7 @@ export async function removeKid(kidId: string): Promise<void> {
     .from('kids')
     .delete()
     .eq('id', kidId);
-  
+
   if (error) {
     console.error('Error removing kid:', error);
   }
@@ -114,12 +124,12 @@ export async function getTasks(): Promise<Task[]> {
     .from('tasks')
     .select('*')
     .order('title');
-  
+
   if (error) {
-    console.error('Error fetching tasks:', error);
+    handleSupabaseError(error, 'fetching tasks');
     return [];
   }
-  
+
   return data.map(transformTask);
 }
 
@@ -141,12 +151,12 @@ export async function addTask(task: Omit<Task, 'id'>): Promise<Task | null> {
     }])
     .select()
     .single();
-  
+
   if (error) {
     console.error('Error adding task:', error);
     return null;
   }
-  
+
   return transformTask(data);
 }
 
@@ -160,7 +170,7 @@ export async function updateTask(task: Task): Promise<void> {
       assigned_kids: task.assignedKids
     })
     .eq('id', task.id);
-  
+
   if (error) {
     console.error('Error updating task:', error);
   }
@@ -171,7 +181,7 @@ export async function removeTask(taskId: string): Promise<void> {
     .from('tasks')
     .delete()
     .eq('id', taskId);
-  
+
   if (error) {
     console.error('Error removing task:', error);
   }
@@ -183,12 +193,12 @@ export async function getRewards(): Promise<Reward[]> {
     .from('rewards')
     .select('*')
     .order('label');
-  
+
   if (error) {
-    console.error('Error fetching rewards:', error);
+    handleSupabaseError(error, 'fetching rewards');
     return [];
   }
-  
+
   return data.map(transformReward);
 }
 
@@ -208,12 +218,12 @@ export async function addReward(reward: Omit<Reward, 'id'>): Promise<Reward | nu
     }])
     .select()
     .single();
-  
+
   if (error) {
     console.error('Error adding reward:', error);
     return null;
   }
-  
+
   return transformReward(data);
 }
 
@@ -225,7 +235,7 @@ export async function updateReward(reward: Reward): Promise<void> {
       cost: reward.cost
     })
     .eq('id', reward.id);
-  
+
   if (error) {
     console.error('Error updating reward:', error);
   }
@@ -236,7 +246,7 @@ export async function removeReward(rewardId: string): Promise<void> {
     .from('rewards')
     .delete()
     .eq('id', rewardId);
-  
+
   if (error) {
     console.error('Error removing reward:', error);
   }
@@ -248,12 +258,12 @@ export async function getRedemptions(): Promise<Redemption[]> {
     .from('redemptions')
     .select('*')
     .order('redeemed_at', { ascending: false });
-  
+
   if (error) {
     console.error('Error fetching redemptions:', error);
     return [];
   }
-  
+
   return data.map(transformRedemption);
 }
 
@@ -274,12 +284,12 @@ export async function addRedemption(redemption: Omit<Redemption, 'id'>): Promise
     }])
     .select()
     .single();
-  
+
   if (error) {
     console.error('Error adding redemption:', error);
     return null;
   }
-  
+
   return transformRedemption(data);
 }
 
@@ -288,7 +298,7 @@ export async function removeRedemption(redemptionId: string): Promise<void> {
     .from('redemptions')
     .delete()
     .eq('id', redemptionId);
-  
+
   if (error) {
     console.error('Error removing redemption:', error);
   }
@@ -299,20 +309,20 @@ export async function getCompletions(): Promise<Completions> {
   const { data, error } = await supabase
     .from('completions')
     .select('*');
-  
+
   if (error) {
     console.error('Error fetching completions:', error);
     return {};
   }
-  
+
   // Transform flat completion records into the nested structure
   const completions: Completions = {};
-  
+
   for (const completion of data) {
     const date = completion.completed_date;
     const kidId = completion.kid_id;
     const taskId = completion.task_id;
-    
+
     if (!completions[date]) {
       completions[date] = {};
     }
@@ -321,7 +331,7 @@ export async function getCompletions(): Promise<Completions> {
     }
     completions[date][kidId][taskId] = true;
   }
-  
+
   return completions;
 }
 
@@ -340,7 +350,7 @@ export async function toggleCompletion(kidId: string, taskId: string, date: stri
         task_id: taskId,
         completed_date: date
       }]);
-    
+
     if (error && error.code !== '23505') { // Ignore unique constraint violations
       console.error('Error adding completion:', error);
     }
@@ -352,7 +362,7 @@ export async function toggleCompletion(kidId: string, taskId: string, date: stri
       .eq('kid_id', kidId)
       .eq('task_id', taskId)
       .eq('completed_date', date);
-    
+
     if (error) {
       console.error('Error removing completion:', error);
     }

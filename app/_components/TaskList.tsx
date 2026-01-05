@@ -17,7 +17,7 @@ export function TaskList() {
   const [showCalendar, setShowCalendar] = useState(false);
   const [isLoadingTasks, setIsLoadingTasks] = useState(true);
   const router = useRouter();
-  
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoadingTasks(true);
@@ -28,24 +28,24 @@ export function TaskList() {
     };
     loadData();
   }, []);
-  
+
   const handleTaskToggle = (kid: Kid, task: Task, checked: boolean) => {
     // Only allow toggling for today's date
     const todayDate = today();
     if (selectedDate !== todayDate) return;
-    
+
     const updateData = async () => {
       const result = applyTaskToggle(kid, task, checked, completions);
-      
+
       await updateKid(result.kid);
       await toggleCompletion(kid.id, task.id, selectedDate, checked);
       setCompletionsState(result.completions);
       refreshKids();
     };
-    
+
     updateData();
   };
-  
+
   if (kidsLoading || isLoadingTasks) {
     return (
       <div className="space-y-4">
@@ -88,11 +88,11 @@ export function TaskList() {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString + 'T12:00:00'); // Avoid timezone issues
-    const options: Intl.DateTimeFormatOptions = { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     };
     return date.toLocaleDateString('en-US', options);
   };
@@ -104,7 +104,7 @@ export function TaskList() {
   const getDateCompletions = (kidId: string) => {
     return completions[selectedDate]?.[kidId] || {};
   };
-  
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -126,85 +126,87 @@ export function TaskList() {
           </button>
         </div>
       </div>
-      
+
       {tasks.length === 0 ? (
         <div className="text-gray-500">No active tasks</div>
       ) : (
         <div className="grid gap-6 md:grid-cols-3">
           {kids.map(kid => {
             const dateCompletions = getDateCompletions(kid.id);
-            
+
             return (
-              <div key={kid.id} className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium text-white" style={{backgroundColor: '#4B2EDE'}}>
+              <div key={kid.id} className="space-y-4">
+                <div className="flex items-center gap-3 px-1">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
                     {kid.avatar || kid.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <div className="font-medium text-gray-900">{kid.name}</div>
-                    <div className="text-sm text-gray-500">{kid.points} pts</div>
+                    <div className="font-bold text-gray-900 leading-tight">{kid.name}</div>
+                    <div className="text-sm font-medium text-indigo-600">{kid.points} pts available</div>
                   </div>
                 </div>
-                
-                <div className="space-y-2">
-                  {tasks.filter(task => 
+
+                <div className="space-y-3">
+                  {tasks.filter(task =>
                     !task.assignedKids || task.assignedKids.length === 0 || task.assignedKids.includes(kid.id)
                   ).map(task => {
                     const isCompleted = dateCompletions[task.id] || false;
                     const canToggle = isToday();
-                    
+
                     return (
                       <label
                         key={`${kid.id}-${task.id}`}
-                        className={`card flex items-center gap-3 transition-colors ${
-                          canToggle ? 'cursor-pointer hover:bg-gray-50' : 'cursor-default'
-                        } ${isCompleted ? 'border-2' : ''}`}
-                        style={isCompleted ? {backgroundColor: 'rgba(0, 200, 120, 0.1)', borderColor: '#00C878'} : {}}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isCompleted}
-                          onChange={e => handleTaskToggle(kid, task, e.target.checked)}
-                          disabled={!canToggle}
-                          className={`w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500 ${
-                            !canToggle ? 'opacity-50' : ''
+                        className={`glass-card flex items-center gap-4 cursor-pointer hover:shadow-md active:scale-[0.99] group ${isCompleted ? 'border-emerald-200' : 'border-white'
                           }`}
-                          aria-describedby={`task-${kid.id}-${task.id}-points`}
-                        />
-                        
+                        style={isCompleted ? { backgroundColor: 'hsl(var(--success-light))' } : {}}
+                      >
+                        <div className="relative flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={isCompleted}
+                            onChange={e => handleTaskToggle(kid, task, e.target.checked)}
+                            disabled={!canToggle}
+                            className="peer sr-only"
+                            aria-describedby={`task-${kid.id}-${task.id}-points`}
+                          />
+                          <div className={`w-6 h-6 rounded-lg border-2 transition-all duration-200 flex items-center justify-center ${isCompleted
+                              ? 'bg-emerald-500 border-emerald-500'
+                              : 'border-gray-200 group-hover:border-indigo-400 bg-white'
+                            }`}>
+                            {isCompleted && (
+                              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            )}
+                          </div>
+                        </div>
+
                         <div className="flex-1 min-w-0">
-                          <div className={`text-sm font-medium truncate ${
-                            isCompleted ? 'text-green-800 line-through' : 'text-gray-900'
-                          }`}>
+                          <div className={`text-md font-semibold transition-all duration-200 ${isCompleted ? 'text-emerald-900/60 line-through' : 'text-gray-900'
+                            }`}>
                             {task.title}
                           </div>
                           <div
                             id={`task-${kid.id}-${task.id}-points`}
-                            className={`text-xs ${isCompleted ? 'text-green-600' : 'text-gray-500'}`}
+                            className={`text-sm font-medium ${isCompleted ? 'text-emerald-600' : 'text-gray-500'}`}
                           >
-                            {task.points} pts
+                            +{task.points} points
                           </div>
                         </div>
-                        
-                        {isCompleted && (
-                          <div className="text-green-600 text-sm" aria-label="Completed">
-                            ✓
-                          </div>
-                        )}
                       </label>
                     );
                   })}
                 </div>
-                
+
                 {isToday() && (
                   <button
                     onClick={() => {
                       setSelectedKid(kid);
                       router.push('/rewards');
                     }}
-                    className="btn-primary w-full mt-3"
+                    className="btn-primary w-full mt-2"
                   >
-                    Redeem Rewards
+                    Redeem Points
                   </button>
                 )}
               </div>

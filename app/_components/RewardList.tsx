@@ -15,7 +15,7 @@ export function RewardList() {
   const [confirmCancel, setConfirmCancel] = useState<Redemption | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isLoadingRewards, setIsLoadingRewards] = useState(true);
-  
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoadingRewards(true);
@@ -25,13 +25,13 @@ export function RewardList() {
     };
     loadData();
   }, []);
-  
+
   if (kidsLoading || isLoadingRewards) {
     return (
       <div className="space-y-6">
         <div className="space-y-3">
           <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
-          
+
           <div className="flex items-center gap-3 p-4 bg-gray-100 rounded-lg">
             <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
             <div className="space-y-1">
@@ -39,7 +39,7 @@ export function RewardList() {
               <div className="h-3 bg-gray-200 rounded animate-pulse w-24"></div>
             </div>
           </div>
-          
+
           <div className="grid gap-3 sm:grid-cols-2">
             {[1, 2, 3, 4].map(i => (
               <div key={i} className="card">
@@ -61,20 +61,20 @@ export function RewardList() {
   if (!selectedKid) {
     return <div className="text-gray-500">Select a kid to see rewards</div>;
   }
-  
+
   const kidRedemptions = redemptions
     .filter(r => r.kidId === selectedKid.id)
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, 5);
-  
+
   const handleRedeem = async (reward: Reward) => {
     if (selectedKid.points < reward.cost) return;
-    
+
     try {
       const updatedKid = redeemReward(selectedKid, reward.cost);
-      
+
       await updateKid(updatedKid);
-      
+
       const newRedemption = await addRedemption({
         kidId: selectedKid.id,
         rewardId: reward.id,
@@ -82,15 +82,15 @@ export function RewardList() {
         cost: reward.cost,
         at: new Date().toISOString()
       });
-      
+
       if (newRedemption) {
         const currentRedemptions = await getRedemptions();
         setRedemptionsState(currentRedemptions);
       }
-      
+
       refreshKids();
       setConfirmReward(null);
-      
+
       setShowConfetti(true);
       setTimeout(() => setShowConfetti(false), 600);
     } catch (error) {
@@ -101,74 +101,73 @@ export function RewardList() {
   const handleCancelRedemption = async (redemption: Redemption) => {
     try {
       if (!selectedKid) return;
-      
+
       // Add points back to the kid
       await updateKid({ ...selectedKid, points: selectedKid.points + redemption.cost });
-      
+
       // Remove the redemption
       await removeRedemption(redemption.id);
       const updatedRedemptions = await getRedemptions();
       setRedemptionsState(updatedRedemptions);
-      
+
       refreshKids();
       setConfirmCancel(null);
     } catch (error) {
       console.error('Cancel redemption failed:', error);
     }
   };
-  
+
   return (
     <div className="space-y-6">
       <div className="space-y-3">
         <h2 className="text-lg font-semibold text-gray-900">Rewards</h2>
-        
+
         {selectedKid && (
-          <div className="flex items-center gap-3 p-4 rounded-lg border" style={{backgroundColor: 'rgba(75, 46, 222, 0.1)', borderColor: '#4B2EDE'}}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium text-white" style={{backgroundColor: '#4B2EDE'}}>
+          <div className="glass-card flex items-center gap-4 bg-indigo-50/50 border-indigo-100">
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
               {selectedKid.avatar || selectedKid.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <div className="font-medium text-gray-900">{selectedKid.name}</div>
-              <div className="text-sm font-medium" style={{color: '#4B2EDE'}}>{selectedKid.points} points available</div>
+              <div className="text-sm font-medium text-gray-500">Currently selected</div>
+              <div className="font-bold text-gray-900 border-b border-indigo-100 pb-0.5 inline-block">{selectedKid.name}</div>
+              <div className="text-md font-bold text-indigo-600 mt-1">{selectedKid.points} points <span className="text-gray-400 font-normal">available</span></div>
             </div>
           </div>
         )}
-        
+
         {rewards.length === 0 ? (
-          <div className="text-gray-500">No rewards available</div>
+          <div className="text-gray-500 py-10 text-center">No rewards available yet</div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             {rewards.map(reward => {
               const canAfford = selectedKid.points >= reward.cost;
-              
+
               return (
-                <div key={reward.id} className="card">
-                  <div className="flex flex-col gap-3">
-                    <div>
-                      <div className="font-medium text-gray-900">{reward.label}</div>
-                      <div className="text-sm text-gray-500">{reward.cost} points</div>
-                    </div>
-                    
-                    <button
-                      onClick={() => setConfirmReward(reward)}
-                      disabled={!canAfford}
-                      className={`w-full ${canAfford ? 'btn-primary' : 'btn-secondary'}`}
-                      aria-label={`Redeem ${reward.label} for ${reward.cost} points`}
-                    >
-                      {canAfford ? 'Redeem' : 'Not enough points'}
-                    </button>
+                <div key={reward.id} className={`glass-card flex flex-col justify-between gap-4 transition-all duration-300 ${canAfford ? 'hover:scale-[1.02] hover:shadow-xl' : 'opacity-70'}`}>
+                  <div>
+                    <div className="font-bold text-gray-900 text-lg leading-tight">{reward.label}</div>
+                    <div className="text-sm font-semibold text-gray-500 mt-1">{reward.cost} points required</div>
                   </div>
+
+                  <button
+                    onClick={() => setConfirmReward(reward)}
+                    disabled={!canAfford}
+                    className={`w-full py-3 ${canAfford ? 'btn-primary' : 'btn-secondary text-gray-400'}`}
+                    aria-label={`Redeem ${reward.label} for ${reward.cost} points`}
+                  >
+                    {canAfford ? 'Redeem for Points' : 'Need more points'}
+                  </button>
                 </div>
               );
             })}
           </div>
         )}
       </div>
-      
+
       {kidRedemptions.length > 0 && (
         <div className="space-y-3">
           <h3 className="text-md font-medium text-gray-900">Recent Redemptions</h3>
-          
+
           <div className="space-y-2">
             {kidRedemptions.map(redemption => (
               <div key={redemption.id} className="card bg-gray-50">
@@ -195,7 +194,7 @@ export function RewardList() {
           </div>
         </div>
       )}
-      
+
       {confirmReward && (
         <ConfirmDialog
           isOpen={true}
@@ -217,7 +216,7 @@ export function RewardList() {
           confirmText="Cancel Redemption"
         />
       )}
-      
+
       {showConfetti && (
         <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
           <div className="relative">

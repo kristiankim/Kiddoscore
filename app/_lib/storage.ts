@@ -1,17 +1,27 @@
 import { Kid, Task, Reward, Redemption, Completions } from './types';
 import { uid } from './ids';
+import { isBackendOffline, setBackendOffline } from './connectivity';
 
 // Check if Supabase is configured (client-side check)
-function isSupabaseConfigured(): boolean {
+export function isSupabaseConfigured(): boolean {
   if (typeof window === 'undefined') return false;
-  return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  const hasConfig = !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+  return hasConfig && !isBackendOffline();
 }
 
 // Conditionally import Supabase functions
 let supabaseStorage: any = null;
 function getSupabaseStorage() {
+  if (isBackendOffline()) return null;
+
   if (!supabaseStorage && isSupabaseConfigured()) {
-    supabaseStorage = require('./supabase-storage');
+    try {
+      supabaseStorage = require('./supabase-storage');
+    } catch (e) {
+      console.error('Failed to load supabase-storage:', e);
+      setBackendOffline(true);
+      return null;
+    }
   }
   return supabaseStorage;
 }
@@ -31,7 +41,7 @@ function isClient(): boolean {
 
 function safeGet<T>(key: string, fallback: T): T {
   if (!isClient()) return fallback;
-  
+
   try {
     const item = localStorage.getItem(key);
     return item ? JSON.parse(item) : fallback;
@@ -42,7 +52,7 @@ function safeGet<T>(key: string, fallback: T): T {
 
 function safeSet<T>(key: string, value: T): void {
   if (!isClient()) return;
-  
+
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
@@ -269,13 +279,13 @@ export async function toggleCompletion(kidId: string, taskId: string, date: stri
   const completions = await getCompletions();
   if (!completions[date]) completions[date] = {};
   if (!completions[date][kidId]) completions[date][kidId] = {};
-  
+
   if (completed) {
     completions[date][kidId][taskId] = true;
   } else {
     delete completions[date][kidId][taskId];
   }
-  
+
   await setCompletions(completions);
 }
 
@@ -296,7 +306,7 @@ export function verifyPasscode(passcode: string): boolean {
 
 export async function seedData(): Promise<void> {
   if (!isClient()) return;
-  
+
   const kids = await getKids();
   if (kids.length === 0) {
     const seedKids: Kid[] = [
@@ -306,7 +316,7 @@ export async function seedData(): Promise<void> {
     ];
     await setKids(seedKids);
   }
-  
+
   const tasks = await getTasks();
   if (tasks.length === 0) {
     const seedTasks: Task[] = [
@@ -317,7 +327,7 @@ export async function seedData(): Promise<void> {
     ];
     await setTasks(seedTasks);
   }
-  
+
   const rewards = await getRewards();
   if (rewards.length === 0) {
     const seedRewards: Reward[] = [

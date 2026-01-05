@@ -18,23 +18,32 @@ export function KidProvider({ children }: { children: ReactNode }) {
   const [selectedKid, setSelectedKid] = useState<Kid | null>(null);
   const [kids, setKids] = useState<Kid[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   const refreshKids = async () => {
-    setIsLoading(true);
-    const currentKids = await getKids();
-    setKids(currentKids);
-    
-    if (!selectedKid && currentKids.length > 0) {
-      setSelectedKid(currentKids[0]);
-    } else if (selectedKid) {
-      const updated = currentKids.find(k => k.id === selectedKid.id);
-      if (updated) {
-        setSelectedKid(updated);
+    const isInitialLoad = kids.length === 0;
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
+
+    try {
+      const currentKids = await getKids();
+      setKids(currentKids);
+
+      if (!selectedKid && currentKids.length > 0) {
+        setSelectedKid(currentKids[0]);
+      } else if (selectedKid) {
+        const updated = currentKids.find(k => k.id === selectedKid.id);
+        if (updated) {
+          setSelectedKid(updated);
+        }
+      }
+    } finally {
+      if (isInitialLoad) {
+        setIsLoading(false);
       }
     }
-    setIsLoading(false);
   };
-  
+
   useEffect(() => {
     const initializeData = async () => {
       await seedData();
@@ -42,7 +51,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
     };
     initializeData();
   }, []);
-  
+
   return (
     <KidContext.Provider value={{ selectedKid, setSelectedKid, kids, refreshKids, isLoading }}>
       {children}
