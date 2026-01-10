@@ -49,8 +49,8 @@ export function TaskList() {
   if (kidsLoading || isLoadingTasks) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="h-6 bg-gray-200 rounded animate-pulse w-48"></div>
+        <div className="flex items-center justify-between mb-10">
+          <div className="h-8 bg-gray-200 rounded animate-pulse w-64"></div>
           <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
         </div>
         <div className="grid gap-6 md:grid-cols-3">
@@ -107,8 +107,8 @@ export function TaskList() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-gray-900">{formatDate(selectedDate)}</h2>
+      <div className="flex items-center justify-between mb-10">
+        <h1 className="text-3xl text-gray-900 tracking-tight">{formatDate(selectedDate)}</h1>
         <div className="flex items-center gap-3">
           {!isToday() && (
             <button
@@ -120,8 +120,11 @@ export function TaskList() {
           )}
           <button
             onClick={() => setShowCalendar(true)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1.5"
           >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
             Open calendar
           </button>
         </div>
@@ -137,7 +140,7 @@ export function TaskList() {
             return (
               <div key={kid.id} className="space-y-4">
                 <div className="flex items-center gap-3 px-1">
-                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
                     {kid.avatar || kid.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
@@ -170,8 +173,8 @@ export function TaskList() {
                             aria-describedby={`task-${kid.id}-${task.id}-points`}
                           />
                           <div className={`w-6 h-6 rounded-lg border-2 transition-all duration-200 flex items-center justify-center ${isCompleted
-                              ? 'bg-emerald-500 border-emerald-500'
-                              : 'border-gray-200 group-hover:border-indigo-400 bg-white'
+                            ? 'bg-emerald-500 border-emerald-500'
+                            : 'border-gray-200 group-hover:border-indigo-400 bg-white'
                             }`}>
                             {isCompleted && (
                               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>

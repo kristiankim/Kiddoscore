@@ -2,6 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@200,400,500,600,700,1&display=swap');
+
 :root {
   /* Color Palette - HSL for easy transparency */
   --brand: 250 75% 55%;
@@ -47,6 +49,12 @@
     background-color: hsl(var(--bg-secondary));
     color: hsl(var(--text));
     min-height: 100vh;
+  }
+
+  h1,
+  h2 {
+    font-family: 'Clash Display', sans-serif;
+    font-weight: 500;
   }
 }
 

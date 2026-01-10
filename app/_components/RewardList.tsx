@@ -124,7 +124,7 @@ export function RewardList() {
 
         {selectedKid && (
           <div className="glass-card flex items-center gap-4 bg-indigo-50/50 border-indigo-100">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
               {selectedKid.avatar || selectedKid.name.charAt(0).toUpperCase()}
             </div>
             <div>

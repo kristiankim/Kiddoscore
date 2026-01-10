@@ -38,12 +38,12 @@ export function Header() {
   return (
     <>
       <header className="glass-header px-4 py-4">
-        <div className="container mx-auto max-w-6xl flex items-center justify-between">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
               <span className="text-white font-bold text-xl">S</span>
             </div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">Sparkquest</h1>
+            <h1 className="text-xl tracking-tight text-gray-900 hidden sm:block">Sparkquest</h1>
             {mounted && isDemo && (
               <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 text-[10px] font-bold uppercase tracking-wider border border-amber-200">
                 Demo Mode
