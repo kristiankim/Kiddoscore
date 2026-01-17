@@ -254,7 +254,7 @@ export default function ParentPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-dm-sans">
+    <div className="min-h-screen bg-white">
       {/* Centered Dashboard Container */}
       <div className="w-full mx-auto pt-8 pb-20">
 

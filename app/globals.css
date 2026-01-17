@@ -51,7 +51,7 @@
   --glass-border: 0 0% 100% / 0.5;
 
   /* Font Variables */
-  --font-sans: var(--font-outfit), var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-dm-sans), var(--font-inter), system-ui, -apple-system, sans-serif;
   --font-display: 'Clash Display', var(--font-sans);
 }
 

@@ -1,15 +1,9 @@
 import type { Metadata } from 'next'
-import { Outfit, Inter, DM_Sans } from 'next/font/google'
+import { Inter, DM_Sans } from 'next/font/google'
 import './globals.css'
 import { Header } from './_components/Header'
 import { KidProvider } from './_lib/context'
 import { AuthProvider } from './_lib/auth'
-
-const outfit = Outfit({
-  subsets: ['latin'],
-  variable: '--font-outfit',
-  display: 'swap',
-})
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,8 +28,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={`${outfit.variable} ${inter.variable} ${dmSans.variable} font-sans min-h-screen`} style={{ backgroundColor: '#FFFFFF' }}>
+    <html lang="en" className={`${inter.variable} ${dmSans.variable}`}>
+      <body className="font-sans min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
         <AuthProvider>
           <KidProvider>
             <Header />
