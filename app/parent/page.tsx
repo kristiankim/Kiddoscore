@@ -254,13 +254,13 @@ export default function ParentPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white font-['DM_Sans',sans-serif]">
+    <div className="min-h-screen bg-white font-dm-sans">
       {/* Centered Dashboard Container */}
       <div className="w-full mx-auto pt-8 pb-20">
 
         {/* Header Section */}
         <div className="flex items-center justify-between mb-12 px-1">
-          <h1 className="text-[40px] font-medium font-['Clash_Display'] text-black leading-tight">
+          <h1 className="text-[40px] font-medium font-display text-black leading-tight">
             Parent dashboard
           </h1>
         </div>
