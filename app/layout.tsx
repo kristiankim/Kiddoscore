@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
-import { Inter, DM_Sans, Geist } from 'next/font/google'
+import { Inter, DM_Sans } from 'next/font/google'
 import './globals.css'
 import { Header } from './_components/Header'
 import { KidProvider } from './_lib/context'
 import { AuthProvider } from './_lib/auth'
 import { cn } from "@/lib/utils";
-
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const inter = Inter({
   subsets: ['latin'],
@@ -31,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={cn(inter.variable, dmSans.variable, "font-sans", geist.variable)}>
+    <html lang="en" className={cn(inter.variable, dmSans.variable, "font-sans")}>
       <body className="font-sans min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
         <AuthProvider>
           <KidProvider>
