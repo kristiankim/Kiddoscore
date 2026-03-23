@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Reward, Redemption } from '../_lib/types';
 import { useKidContext } from '../_lib/context';
 import { getRewards, getRedemptions, updateKid, addRedemption, removeRedemption } from '../_lib/storage';
@@ -15,6 +15,12 @@ export function RewardList() {
   const [confirmCancel, setConfirmCancel] = useState<Redemption | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
   const [isLoadingRewards, setIsLoadingRewards] = useState(true);
+  const confettiPositions = useRef(
+    Array.from({ length: 8 }, () => ({
+      left: Math.random() * 140 - 70,
+      top: Math.random() * 100 - 50,
+    }))
+  );
 
   useEffect(() => {
     const loadData = async () => {
@@ -123,14 +129,14 @@ export function RewardList() {
         <h2 className="text-lg font-semibold text-gray-900">Rewards</h2>
 
         {selectedKid && (
-          <div className="glass-card flex items-center gap-4 bg-indigo-50/50 border-indigo-100">
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-indigo-100" style={{ backgroundColor: 'hsl(var(--brand))' }}>
+          <div className="card flex items-center gap-4 bg-brand-light/60 border-brand/10">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-brand/10" style={{ backgroundColor: 'hsl(var(--brand))' }}>
               {selectedKid.avatar || selectedKid.name.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="text-sm font-medium text-gray-500">Currently selected</div>
-              <div className="font-bold text-gray-900 border-b border-indigo-100 pb-0.5 inline-block">{selectedKid.name}</div>
-              <div className="text-md font-bold text-indigo-600 mt-1">{selectedKid.points} points <span className="text-gray-400 font-normal">available</span></div>
+              <div className="font-bold text-gray-900 border-b border-brand/20 pb-0.5 inline-block">{selectedKid.name}</div>
+              <div className="text-base font-bold text-brand mt-1 tabular-nums">{selectedKid.points} points <span className="text-content-muted font-normal">available</span></div>
             </div>
           </div>
         )}
@@ -143,7 +149,7 @@ export function RewardList() {
               const canAfford = selectedKid.points >= reward.cost;
 
               return (
-                <div key={reward.id} className={`glass-card flex flex-col justify-between gap-4 transition-all duration-300 ${canAfford ? 'hover:scale-[1.02] hover:shadow-xl' : 'opacity-70'}`}>
+                <div key={reward.id} className={`card flex flex-col justify-between gap-4 transition-all duration-300 ${canAfford ? 'hover:shadow-md' : 'opacity-60'}`}>
                   <div>
                     <div className="font-bold text-gray-900 text-lg leading-tight">{reward.label}</div>
                     <div className="text-sm font-semibold text-gray-500 mt-1">{reward.cost} points required</div>
@@ -166,7 +172,7 @@ export function RewardList() {
 
       {kidRedemptions.length > 0 && (
         <div className="space-y-3">
-          <h3 className="text-md font-medium text-gray-900">Recent Redemptions</h3>
+          <h3 className="text-base font-medium text-gray-900">Recent Redemptions</h3>
 
           <div className="space-y-2">
             {kidRedemptions.map(redemption => (
@@ -220,13 +226,13 @@ export function RewardList() {
       {showConfetti && (
         <div className="fixed inset-0 pointer-events-none flex items-center justify-center z-50">
           <div className="relative">
-            {[...Array(5)].map((_, i) => (
+            {confettiPositions.current.map((pos, i) => (
               <div
                 key={i}
                 className="confetti-particle"
                 style={{
-                  left: `${Math.random() * 100 - 50}px`,
-                  top: `${Math.random() * 100 - 50}px`,
+                  left: `${pos.left}px`,
+                  top: `${pos.top}px`,
                 }}
               />
             ))}

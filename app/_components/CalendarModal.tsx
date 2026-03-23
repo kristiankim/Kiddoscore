@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useFocusTrap } from '../_lib/useFocusTrap';
 
 function toLocalDateString(date: Date): string {
   const year = date.getFullYear();
@@ -18,13 +19,24 @@ interface CalendarModalProps {
 
 export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: CalendarModalProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  
+  const trapRef = useFocusTrap(isOpen);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   useEffect(() => {
-    if (isOpen) {
-      const selected = new Date(selectedDate);
-      setCurrentMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
-    }
-  }, [isOpen, selectedDate]);
+    if (!isOpen) return;
+
+    const selected = new Date(selectedDate);
+    setCurrentMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
+
+    // Focus close button on open
+    closeButtonRef.current?.focus();
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isOpen, selectedDate, onClose]);
 
   if (!isOpen) return null;
 
@@ -81,20 +93,21 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
 
   return (
     <div
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
       onClick={e => e.target === e.currentTarget && onClose()}
       role="dialog"
       aria-modal="true"
       aria-labelledby="calendar-title"
     >
-      <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6">
+      <div ref={trapRef} className="card max-w-sm w-full p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 id="calendar-title" className="text-lg font-semibold text-gray-900">
             Select Date
           </h2>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50"
             aria-label="Close calendar"
           >
             ✕
@@ -105,7 +118,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
         <div className="flex items-center justify-between mb-4">
           <button
             onClick={goToPreviousMonth}
-            className="p-2 hover:bg-gray-100 rounded"
+            className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-gray-100"
             aria-label="Previous month"
           >
             ←
@@ -115,7 +128,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
           </div>
           <button
             onClick={goToNextMonth}
-            className="p-2 hover:bg-gray-100 rounded"
+            className="w-11 h-11 flex items-center justify-center rounded-lg hover:bg-gray-100"
             aria-label="Next month"
           >
             →
@@ -145,10 +158,10 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
                 onClick={() => handleDateClick(date)}
                 disabled={isFuture}
                 className={`
-                  h-10 w-10 text-sm rounded transition-colors
+                  h-11 w-11 text-sm rounded-lg transition-colors
                   ${!isCurrentMonthDay ? 'text-gray-300' : ''}
-                  ${isTodayDate ? 'bg-blue-100 text-blue-800 font-medium' : ''}
-                  ${isSelectedDate ? 'bg-blue-600 text-white' : ''}
+                  ${isTodayDate ? 'bg-brand-light text-brand font-medium' : ''}
+                  ${isSelectedDate ? 'bg-brand text-white' : ''}
                   ${isFuture ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100'}
                   ${!isTodayDate && !isSelectedDate && isCurrentMonthDay && !isFuture ? 'text-gray-900' : ''}
                 `}

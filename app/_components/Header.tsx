@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useFocusTrap } from '../_lib/useFocusTrap';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '../_lib/auth';
 import { isSupabaseConfigured } from '../_lib/storage';
@@ -9,6 +10,7 @@ export function Header() {
   const [mounted, setMounted] = useState(false);
   const isDemo = !isSupabaseConfigured();
   const [showPinModal, setShowPinModal] = useState(false);
+  const pinTrapRef = useFocusTrap(showPinModal);
   const [pin, setPin] = useState('');
   const router = useRouter();
   const pathname = usePathname();
@@ -37,10 +39,10 @@ export function Header() {
 
   return (
     <>
-      <header className="glass-header px-4 py-4">
+      <header className="site-header px-4 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+            <div className="w-8 h-8 rounded-lg bg-brand flex items-center justify-center shadow-sm shadow-brand/20">
               <span className="text-white font-bold text-xl">S</span>
             </div>
             <h1 className="text-xl tracking-tight text-gray-900 hidden sm:block">Sparkquest</h1>
@@ -98,13 +100,13 @@ export function Header() {
       {/* Pin Modal */}
       {showPinModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
           onClick={e => e.target === e.currentTarget && setShowPinModal(false)}
           role="dialog"
           aria-modal="true"
           aria-labelledby="pin-title"
         >
-          <div className="bg-white rounded-lg shadow-lg max-w-sm w-full p-6">
+          <div ref={pinTrapRef} className="card max-w-sm w-full p-6">
             <h2 id="pin-title" className="text-lg font-semibold text-gray-900 mb-4 text-center">
               Enter Parent PIN
             </h2>

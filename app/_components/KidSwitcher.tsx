@@ -13,10 +13,10 @@ export function KidSwitcher() {
         <button
           key={kid.id}
           onClick={() => setSelectedKid(kid)}
-          className={`px-3 py-1 rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+          className={`px-4 min-h-[44px] rounded-full text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-brand/50 ${
             selectedKid?.id === kid.id
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              ? 'bg-brand text-white'
+              : 'bg-surface-secondary text-content-muted hover:text-content'
           }`}
           aria-label={`Select ${kid.name}`}
         >

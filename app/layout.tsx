@@ -30,7 +30,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn(inter.variable, dmSans.variable, "font-sans")}>
-      <body className="font-sans min-h-screen" style={{ backgroundColor: '#FFFFFF' }}>
+      <body className="font-sans min-h-screen bg-surface-secondary">
         <AuthProvider>
           <KidProvider>
             <Header />

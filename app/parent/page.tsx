@@ -254,101 +254,135 @@ export default function ParentPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Centered Dashboard Container */}
-      <div className="w-full mx-auto pt-8 pb-20">
+    <div className="pt-6 pb-20">
 
-        {/* Header Section */}
-        <div className="flex items-center justify-between mb-12 px-1">
-          <h1 className="text-[40px] font-medium font-display text-black leading-tight">
-            Parent dashboard
-          </h1>
-        </div>
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-4xl font-medium font-display text-gray-900 leading-tight">
+          Parent dashboard
+        </h1>
+      </div>
 
-        {/* Main Content with Sidebar */}
-        <div className="flex gap-12 items-start">
+      {/* Main Content with Sidebar */}
+      <div className="flex flex-col md:flex-row gap-6 md:gap-12 items-start">
 
-          {/* Sidebar Navigation */}
-          <nav className="w-48 flex flex-col gap-6 pt-2">
-            {tabs.map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`text-left text-base font-medium transition-colors ${activeTab === tab.id
-                  ? "text-black font-bold"
-                  : "text-gray-400 hover:text-gray-600"
-                  }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+        {/* Sidebar Navigation */}
+        <nav className="w-full md:w-40 flex flex-row md:flex-col gap-1 md:gap-1 border-b md:border-b-0 border-gray-100 pb-4 md:pb-0 overflow-x-auto no-scrollbar">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              aria-current={activeTab === tab.id ? 'page' : undefined}
+              className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center ${activeTab === tab.id
+                ? 'bg-surface-secondary text-black font-semibold'
+                : 'text-content-muted hover:text-content hover:bg-surface-secondary'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-          {/* Tab Content */}
-          <div className="flex-1">
-            {activeTab === 'kids' && (
-              <div className="flex flex-col gap-6">
+        {/* Tab Content */}
+        <div className="flex-1 min-w-0">
 
-                {/* Kid Cards */}
-                <div className="flex flex-col gap-4">
+          {/* ── Kids ── */}
+          {activeTab === 'kids' && (
+            <div className="space-y-6">
+
+              {/* Add kid form */}
+              <div className="card space-y-3">
+                <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">Add child</p>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={newKidName}
+                    onChange={e => setNewKidName(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addKidHandler()}
+                    placeholder="Child's name"
+                    className="input flex-1"
+                  />
+                  <button
+                    onClick={addKidHandler}
+                    disabled={!newKidName.trim()}
+                    className="btn-primary"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+
+              {/* Kid cards */}
+              {kids.length > 0 && (
+                <div className="space-y-3">
                   {kids.map(kid => {
                     const kidStats = weeklyStats.find(s => s.kid.id === kid.id);
                     return (
                       <div
                         key={kid.id}
-                        className="glass-card flex items-center justify-between p-6"
+                        className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
                       >
                         {/* Avatar & Name */}
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
                             {kid.avatar ? (
                               <img src={kid.avatar} alt={kid.name} className="w-full h-full object-cover" />
                             ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-700 font-bold text-lg">
+                              <div className="w-full h-full flex items-center justify-center bg-brand-light text-brand font-bold text-base">
                                 {kid.name.charAt(0)}
                               </div>
                             )}
                           </div>
-                          <span className="text-black font-medium text-lg">{kid.name}</span>
+                          <span className="font-semibold text-gray-900">{kid.name}</span>
                         </div>
 
-                        {/* Stats Sections */}
-                        <div className="flex items-center gap-12 ml-auto mr-12 text-center">
-                          <div className="flex flex-col">
-                            <span className="text-2xl font-bold text-black">{kidStats?.weekPoints || 0}</span>
-                            <span className="text-gray-500 text-sm">points this week</span>
+                        {/* Stats */}
+                        <div className="flex items-center gap-8 sm:ml-auto text-center">
+                          <div>
+                            <div className="text-xl font-bold text-gray-900 tabular-nums">{kidStats?.weekPoints || 0}</div>
+                            <div className="text-xs text-content-muted mt-0.5">pts this week</div>
                           </div>
-                          <div className="flex flex-col">
-                            <span className="text-2xl font-bold text-black">
+                          <div>
+                            <div className="text-xl font-bold text-gray-900 tabular-nums">
                               {tasks.filter(t => !t.assignedKids || t.assignedKids.includes(kid.id)).length}
-                            </span>
-                            <span className="text-gray-500 text-sm">tasks</span>
+                            </div>
+                            <div className="text-xs text-content-muted mt-0.5">tasks</div>
+                          </div>
+                          <div>
+                            <div className="text-xl font-bold text-brand tabular-nums">{kid.points}</div>
+                            <div className="text-xs text-content-muted mt-0.5">pts balance</div>
                           </div>
                         </div>
 
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-3">
+                        {/* Actions */}
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => adjustPoints(kid.id, 5)}
-                            className="w-10 h-8 flex items-center justify-center border border-[#d7d7d7] rounded hover:bg-gray-50 text-sm text-black"
+                            title="Add 5 points"
+                            className="w-11 h-11 flex items-center justify-center border border-border rounded-lg hover:bg-surface-secondary text-sm font-medium text-gray-700 transition-colors"
                           >
                             +5
                           </button>
                           <button
                             onClick={() => adjustPoints(kid.id, -5)}
-                            className="w-10 h-8 flex items-center justify-center border border-[#d7d7d7] rounded hover:bg-gray-50 text-sm text-black"
+                            title="Remove 5 points"
+                            className="w-11 h-11 flex items-center justify-center border border-border rounded-lg hover:bg-surface-secondary text-sm font-medium text-gray-700 transition-colors"
                           >
-                            -5
+                            −5
                           </button>
                           <button
                             onClick={() => setConfirmAction({ type: 'clearToday', data: kid.id })}
-                            className="px-4 h-8 flex items-center justify-center border border-[#d7d7d7] rounded hover:bg-gray-50 text-sm text-black"
+                            className="h-11 px-4 flex items-center border border-border rounded-lg hover:bg-surface-secondary text-sm text-gray-700 transition-colors"
                           >
                             Clear today
                           </button>
-                          <button className="p-1 hover:bg-gray-100 rounded">
-                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-                              <circle cx="12" cy="12" r="1" /><circle cx="12" cy="5" r="1" /><circle cx="12" cy="19" r="1" />
+                          <button
+                            onClick={() => setConfirmAction({ type: 'removeKid', data: kid.id })}
+                            className="w-11 h-11 flex items-center justify-center hover:bg-danger-light rounded-lg transition-colors"
+                            title="Remove child"
+                          >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger">
+                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                             </svg>
                           </button>
                         </div>
@@ -356,85 +390,77 @@ export default function ParentPage() {
                     );
                   })}
                 </div>
+              )}
+            </div>
+          )}
 
-                {/* Add New Kid Button */}
-                <button
-                  onClick={() => {/* add kid logic opens a modal or inline form */ }}
-                  className="w-fit px-6 py-3 bg-[#2D6EFD] hover:bg-[#1a5adb] text-white rounded-lg font-medium flex items-center gap-2 transition-colors transition-colors"
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14M12 5v14" />
-                  </svg>
-                  Add new kid
-                </button>
-              </div>
-            )}
+          {/* ── Tasks ── */}
+          {activeTab === 'tasks' && (
+            <div className="space-y-6">
 
-            {activeTab === 'tasks' && (
-              <div className="space-y-4">
-                <h2 className="text-lg text-gray-900 font-bold mb-6">Tasks</h2>
-
-                <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={newTaskTitle}
-                      onChange={e => setNewTaskTitle(e.target.value)}
-                      placeholder="Task title"
-                      className="input flex-1"
-                    />
-                    <input
-                      type="number"
-                      value={newTaskPoints}
-                      onChange={e => setNewTaskPoints(e.target.value)}
-                      placeholder="Points"
-                      className="input w-24"
-                    />
-                    <button onClick={addTaskHandler} className="btn-primary">
-                      Add Task
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-700">
-                      Assign to kids (leave empty for all):
-                    </label>
+              {/* Add task form */}
+              <div className="card space-y-4">
+                <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">Add task</p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="text"
+                    value={newTaskTitle}
+                    onChange={e => setNewTaskTitle(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addTaskHandler()}
+                    placeholder="Task name"
+                    className="input flex-1"
+                  />
+                  <input
+                    type="number"
+                    value={newTaskPoints}
+                    onChange={e => setNewTaskPoints(e.target.value)}
+                    placeholder="Points"
+                    className="input w-28"
+                  />
+                  <button onClick={addTaskHandler} className="btn-primary whitespace-nowrap">
+                    Add task
+                  </button>
+                </div>
+                {kids.length > 0 && (
+                  <div>
+                    <p className="text-xs text-content-muted mb-2">Assign to specific children (leave empty for all)</p>
                     <div className="flex gap-2 flex-wrap">
                       {kids.map(kid => (
-                        <label key={kid.id} className="flex items-center gap-2 cursor-pointer p-2 rounded-lg border border-gray-100 hover:bg-gray-50">
+                        <label key={kid.id} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:bg-surface-secondary transition-colors text-sm text-gray-700">
                           <input
                             type="checkbox"
                             checked={newTaskAssignedKids.includes(kid.id)}
                             onChange={() => handleKidAssignmentToggle(kid.id)}
-                            className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                            className="w-4 h-4 text-brand rounded focus:ring-2 focus:ring-brand/50"
                           />
-                          <div className="flex items-center gap-1">
-                            <span className="text-sm text-gray-700">{kid.name}</span>
-                          </div>
+                          {kid.name}
                         </label>
                       ))}
                     </div>
                   </div>
-                </div>
+                )}
+              </div>
 
-                <div className="space-y-3 mt-8">
+              {/* Task list */}
+              {tasks.length > 0 && (
+                <div className="space-y-2">
                   {tasks.map(task => (
-                    <div key={task.id} className="bg-white border border-[#d7d7d7] rounded-xl p-5 flex items-center justify-between">
-                      <div className={`flex-1 ${!task.active ? 'opacity-50' : ''}`}>
-                        <div className="font-bold text-lg">{task.title}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-sm text-gray-500 font-medium">{task.points} points</span>
+                    <div key={task.id} className="card flex items-center gap-4">
+                      <div className={`flex-1 min-w-0 ${!task.active ? 'opacity-40' : ''}`}>
+                        <div className="font-semibold text-gray-900 truncate">{task.title}</div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-sm text-content-muted">{task.points} pts</span>
                           {task.assignedKids && task.assignedKids.length > 0 && (
-                            <div className="flex items-center gap-2 -ml-1">
-                              <span className="text-xs text-gray-400">•</span>
-                              <div className="flex -space-x-2">
+                            <>
+                              <span className="text-xs text-gray-300">·</span>
+                              <div className="flex -space-x-1.5">
                                 {task.assignedKids.map(kidId => {
                                   const kid = kids.find(k => k.id === kidId);
                                   if (!kid) return null;
                                   return (
                                     <div
                                       key={kidId}
-                                      className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-blue-800 border-2 border-white bg-blue-50"
+                                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-brand border border-white bg-brand-light"
                                       title={kid.name}
                                     >
                                       {kid.name.charAt(0)}
@@ -442,131 +468,161 @@ export default function ParentPage() {
                                   );
                                 })}
                               </div>
-                            </div>
+                            </>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           onClick={() => openEditTaskModal(task)}
-                          className="p-2 hover:bg-gray-100 rounded text-gray-400"
+                          className="w-9 h-9 flex items-center justify-center hover:bg-surface-secondary rounded-lg text-content-muted transition-colors"
+                          title="Edit task"
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                         </button>
                         <button
                           onClick={() => toggleTask(task.id)}
-                          className={`text-sm font-medium px-4 py-1.5 rounded-lg border ${task.active ? 'border-gray-200 text-gray-600' : 'border-green-200 text-green-600 bg-green-50'}`}
+                          className={`h-9 px-3 text-sm font-medium rounded-lg border transition-colors ${task.active
+                            ? 'border-border text-content-muted hover:bg-surface-secondary'
+                            : 'border-success/30 text-success bg-success-light'
+                          }`}
                         >
                           {task.active ? 'Disable' : 'Enable'}
                         </button>
                         <button
                           onClick={() => setConfirmAction({ type: 'removeTask', data: task.id })}
-                          className="text-sm font-medium px-4 py-1.5 rounded-lg border border-red-100 text-red-500 hover:bg-red-50"
+                          className="w-9 h-9 flex items-center justify-center hover:bg-danger-light rounded-lg transition-colors"
+                          title="Delete task"
                         >
-                          Delete
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          )}
 
-            {activeTab === 'rewards' && (
-              <div className="space-y-4">
-                <h2 className="text-lg text-gray-900 font-bold mb-6">Rewards</h2>
+          {/* ── Rewards ── */}
+          {activeTab === 'rewards' && (
+            <div className="space-y-6">
 
-                <div className="flex gap-2">
+              {/* Add reward form */}
+              <div className="card space-y-4">
+                <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">Add reward</p>
+                <div className="flex flex-col sm:flex-row gap-3">
                   <input
                     type="text"
                     value={newRewardLabel}
                     onChange={e => setNewRewardLabel(e.target.value)}
-                    placeholder="Reward label"
+                    onKeyDown={e => e.key === 'Enter' && addRewardHandler()}
+                    placeholder="Reward name"
                     className="input flex-1"
                   />
                   <input
                     type="number"
                     value={newRewardCost}
                     onChange={e => setNewRewardCost(e.target.value)}
-                    placeholder="Cost"
-                    className="input w-24"
+                    placeholder="Points cost"
+                    className="input w-32"
                   />
-                  <button onClick={addRewardHandler} className="btn-primary">
-                    Add Reward
+                  <button onClick={addRewardHandler} className="btn-primary whitespace-nowrap">
+                    Add reward
                   </button>
                 </div>
+              </div>
 
-                <div className="space-y-3 mt-8">
+              {/* Reward list */}
+              {rewards.length > 0 && (
+                <div className="space-y-2">
                   {rewards.map(reward => (
-                    <div key={reward.id} className="bg-white border border-[#d7d7d7] rounded-xl p-5 flex items-center justify-between">
-                      <div>
-                        <div className="font-bold text-lg">{reward.label}</div>
-                        <div className="text-sm text-indigo-600 font-bold mt-1">{reward.cost} points</div>
+                    <div key={reward.id} className="card flex items-center gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-gray-900 truncate">{reward.label}</div>
+                        <div className="text-sm text-brand font-medium mt-0.5">{reward.cost} pts</div>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 flex-shrink-0">
                         <button
                           onClick={() => openEditRewardModal(reward)}
-                          className="p-2 hover:bg-gray-100 rounded text-gray-400"
+                          className="w-9 h-9 flex items-center justify-center hover:bg-surface-secondary rounded-lg text-content-muted transition-colors"
+                          title="Edit reward"
                         >
-                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
                         </button>
                         <button
                           onClick={() => setConfirmAction({ type: 'removeReward', data: reward.id })}
-                          className="text-sm font-medium px-4 py-1.5 rounded-lg border border-red-100 text-red-500 hover:bg-red-50"
+                          className="w-9 h-9 flex items-center justify-center hover:bg-danger-light rounded-lg transition-colors"
+                          title="Delete reward"
                         >
-                          Delete
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
                         </button>
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
 
-      {/* Modals and Dialogs */}
+      {/* Modals */}
       {editingTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6">
-            <h3 className="text-xl font-bold text-gray-900">Edit Task</h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="card max-w-md w-full p-8 space-y-5">
+            <h3 className="text-lg font-semibold text-gray-900">Edit task</h3>
             <div className="space-y-4">
-              <input type="text" value={editTaskTitle} onChange={e => setEditTaskTitle(e.target.value)} className="input" placeholder="Task title" />
-              <input type="number" value={editTaskPoints} onChange={e => setEditTaskPoints(e.target.value)} className="input" placeholder="Points" />
-              <div className="space-y-2">
-                <label className="text-sm font-bold text-gray-700 italic">Assign to kids:</label>
-                <div className="flex flex-wrap gap-2">
-                  {kids.map(kid => (
-                    <label key={kid.id} className="flex items-center gap-2 cursor-pointer p-2 border rounded-lg">
-                      <input type="checkbox" checked={editTaskAssignedKids.includes(kid.id)} onChange={() => handleEditKidAssignmentToggle(kid.id)} />
-                      <span className="text-sm">{kid.name}</span>
-                    </label>
-                  ))}
-                </div>
+              <div>
+                <label className="text-sm font-medium text-content-muted block mb-1.5">Task name</label>
+                <input type="text" value={editTaskTitle} onChange={e => setEditTaskTitle(e.target.value)} className="input" />
               </div>
+              <div>
+                <label className="text-sm font-medium text-content-muted block mb-1.5">Points</label>
+                <input type="number" value={editTaskPoints} onChange={e => setEditTaskPoints(e.target.value)} className="input" />
+              </div>
+              {kids.length > 0 && (
+                <div>
+                  <label className="text-sm font-medium text-content-muted block mb-2">Assign to children</label>
+                  <div className="flex flex-wrap gap-2">
+                    {kids.map(kid => (
+                      <label key={kid.id} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:bg-surface-secondary transition-colors text-sm text-gray-700">
+                        <input type="checkbox" checked={editTaskAssignedKids.includes(kid.id)} onChange={() => handleEditKidAssignmentToggle(kid.id)} className="w-4 h-4 text-brand rounded focus:ring-2 focus:ring-brand/50" />
+                        {kid.name}
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-2">
               <button onClick={closeEditTaskModal} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={saveTaskEdit} className="btn-primary flex-1">Save Changes</button>
+              <button onClick={saveTaskEdit} className="btn-primary flex-1">Save</button>
             </div>
           </div>
         </div>
       )}
 
       {editingReward && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-2xl space-y-6">
-            <h3 className="text-xl font-bold text-gray-900">Edit Reward</h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
+          <div className="card max-w-md w-full p-8 space-y-5">
+            <h3 className="text-lg font-semibold text-gray-900">Edit reward</h3>
             <div className="space-y-4">
-              <input type="text" value={editRewardLabel} onChange={e => setEditRewardLabel(e.target.value)} className="input" placeholder="Reward label" />
-              <input type="number" value={editRewardCost} onChange={e => setEditRewardCost(e.target.value)} className="input" placeholder="Cost" />
+              <div>
+                <label className="text-sm font-medium text-content-muted block mb-1.5">Reward name</label>
+                <input type="text" value={editRewardLabel} onChange={e => setEditRewardLabel(e.target.value)} className="input" />
+              </div>
+              <div>
+                <label className="text-sm font-medium text-content-muted block mb-1.5">Points cost</label>
+                <input type="number" value={editRewardCost} onChange={e => setEditRewardCost(e.target.value)} className="input" />
+              </div>
             </div>
-            <div className="flex gap-3 pt-4">
+            <div className="flex gap-3 pt-2">
               <button onClick={closeEditRewardModal} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={saveRewardEdit} className="btn-primary flex-1">Save Changes</button>
+              <button onClick={saveRewardEdit} className="btn-primary flex-1">Save</button>
             </div>
           </div>
         </div>
