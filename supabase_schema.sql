@@ -1,4 +1,4 @@
--- Kiddoscore Database Schema with Authentication
+-- Sparkquest Database Schema with Authentication
 -- Run this in your Supabase SQL editor
 
 -- Enable UUID extension

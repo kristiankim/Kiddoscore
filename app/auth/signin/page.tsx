@@ -26,7 +26,7 @@ export default function SignInPage() {
         <div className="text-center">
           <h1 className="text-3xl font-semibold text-gray-900">Welcome Back</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Sign in to your Kiddoscore account
+            Sign in to your Sparkquest account
           </p>
         </div>
 

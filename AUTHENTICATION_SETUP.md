@@ -1,6 +1,6 @@
-# Supabase Authentication Setup for Kiddoscore
+# Supabase Authentication Setup for Sparkquest
 
-This guide will help you implement user authentication in your Kiddoscore app using Supabase.
+This guide will help you implement user authentication in your Sparkquest app using Supabase.
 
 ## Step 1: Update Database Schema
 

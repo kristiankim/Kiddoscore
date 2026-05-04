@@ -26,7 +26,7 @@ export default function SignUpPage() {
         <div className="text-center">
           <h1 className="text-3xl font-semibold text-gray-900">Create Account</h1>
           <p className="mt-2 text-sm text-gray-600">
-            Sign up for your Kiddoscore account
+            Sign up for your Sparkquest account
           </p>
         </div>
 

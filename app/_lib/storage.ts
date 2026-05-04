@@ -27,20 +27,42 @@ function getSupabaseStorage() {
 }
 
 const STORAGE_KEYS = {
-  kids: 'kiddo-score:kids',
-  tasks: 'kiddo-score:tasks',
-  rewards: 'kiddo-score:rewards',
-  completions: 'kiddo-score:completions',
-  redemptions: 'kiddo-score:redemptions',
-  passcode: 'kiddo-score:passcode',
+  kids: 'sparkquest:kids',
+  tasks: 'sparkquest:tasks',
+  rewards: 'sparkquest:rewards',
+  completions: 'sparkquest:completions',
+  redemptions: 'sparkquest:redemptions',
+  passcode: 'sparkquest:passcode',
 } as const;
 
 function isClient(): boolean {
   return typeof window !== 'undefined';
 }
 
+let legacyKeysMigrated = false;
+function migrateLegacyKeys(): void {
+  if (legacyKeysMigrated || !isClient()) return;
+  legacyKeysMigrated = true;
+
+  for (const newKey of Object.values(STORAGE_KEYS)) {
+    const legacyKey = newKey.replace(/^sparkquest:/, 'kiddo-score:');
+    try {
+      const legacyValue = localStorage.getItem(legacyKey);
+      if (legacyValue !== null && localStorage.getItem(newKey) === null) {
+        localStorage.setItem(newKey, legacyValue);
+      }
+      if (legacyValue !== null) {
+        localStorage.removeItem(legacyKey);
+      }
+    } catch {
+      // Silent fail
+    }
+  }
+}
+
 function safeGet<T>(key: string, fallback: T): T {
   if (!isClient()) return fallback;
+  migrateLegacyKeys();
 
   try {
     const item = localStorage.getItem(key);
@@ -52,6 +74,7 @@ function safeGet<T>(key: string, fallback: T): T {
 
 function safeSet<T>(key: string, value: T): void {
   if (!isClient()) return;
+  migrateLegacyKeys();
 
   try {
     localStorage.setItem(key, JSON.stringify(value));

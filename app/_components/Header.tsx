@@ -37,6 +37,10 @@ export function Header() {
     }
   };
 
+  if (pathname?.startsWith('/auth')) {
+    return null;
+  }
+
   return (
     <>
       <header className="site-header px-4 py-4">

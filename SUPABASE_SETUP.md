@@ -1,4 +1,4 @@
-# Supabase Setup for Kiddoscore
+# Supabase Setup for Sparkquest
 
 This guide will help you migrate from localStorage to Supabase database for persistent, cloud-based storage.
 
