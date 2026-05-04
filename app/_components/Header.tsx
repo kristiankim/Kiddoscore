@@ -82,20 +82,12 @@ export function Header() {
                 </button>
               </>
             ) : (
-              <>
-                <button
-                  onClick={() => router.push('/auth/signin')}
-                  className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors px-2"
-                >
-                  Sign In
-                </button>
-                <button
-                  onClick={() => router.push('/auth/signup')}
-                  className="btn-primary text-sm"
-                >
-                  Sign Up
-                </button>
-              </>
+              <button
+                onClick={() => router.push('/auth/signin')}
+                className="btn-primary text-sm"
+              >
+                Sign In
+              </button>
             )}
           </div>
         </div>

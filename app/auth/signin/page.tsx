@@ -4,7 +4,7 @@ import { AuthForm } from '../../_components/AuthForm';
 import { useAuth } from '../../_lib/auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import Link from 'next/link';
+import { disableDemoMode, enableDemoMode, isDemoMode } from '../../_lib/demo';
 
 export default function SignInPage() {
   const { user } = useAuth();
@@ -17,7 +17,17 @@ export default function SignInPage() {
   }, [user, router]);
 
   const handleSuccess = () => {
+    if (isDemoMode()) {
+      disableDemoMode();
+      window.location.href = '/';
+      return;
+    }
     router.push('/');
+  };
+
+  const handleDemo = () => {
+    enableDemoMode();
+    window.location.href = '/';
   };
 
   return (
@@ -32,15 +42,24 @@ export default function SignInPage() {
 
         <AuthForm mode="signin" onSuccess={handleSuccess} />
 
-        <div className="text-center">
-          <p className="text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-brand hover:text-brand-dark">
-              Sign up
-            </Link>
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-xs uppercase tracking-wider text-gray-400">or</span>
+            <div className="flex-1 h-px bg-gray-200" />
+          </div>
+          <button
+            type="button"
+            onClick={handleDemo}
+            className="btn-secondary w-full"
+          >
+            See a demo
+          </button>
+          <p className="text-xs text-center text-gray-500">
+            Try Sparkquest with sample data — no account needed.
           </p>
         </div>
       </div>
     </div>
   );
-} 
+}

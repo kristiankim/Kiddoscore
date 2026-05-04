@@ -2,7 +2,8 @@
 
 import { useAuth } from '../_lib/auth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { isDemoMode } from '../_lib/demo';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,9 +12,14 @@ interface ProtectedRouteProps {
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const [demo, setDemo] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
+    setDemo(isDemoMode());
+  }, []);
+
+  useEffect(() => {
+    if (!loading && !user && !isDemoMode()) {
       router.push('/auth/signin');
     }
   }, [user, loading, router]);
@@ -29,9 +35,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     );
   }
 
-  if (!user) {
+  if (!user && !demo) {
     return null; // Will redirect to sign-in
   }
 
   return <>{children}</>;
-} 
+}
