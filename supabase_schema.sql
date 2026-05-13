@@ -101,6 +101,14 @@ CREATE TRIGGER update_tasks_updated_at BEFORE UPDATE ON tasks
 CREATE TRIGGER update_rewards_updated_at BEFORE UPDATE ON rewards
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
+-- Explicit grants required for Data API (supabase-js / PostgREST) access
+GRANT SELECT, INSERT, UPDATE ON public.user_profiles TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.kids TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.tasks TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.rewards TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.redemptions TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.completions TO authenticated;
+
 -- Row Level Security (RLS) with proper user-based policies
 ALTER TABLE user_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE kids ENABLE ROW LEVEL SECURITY;
