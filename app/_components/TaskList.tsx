@@ -1,13 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { CalendarDays, ArrowUpRight, Check, Loader2 } from "lucide-react";
+import {
+  CalendarDays,
+  ArrowUpRight,
+  Check,
+  Loader2,
+  Flame,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Task, Kid, Completions } from "../_lib/types";
 import { useKidContext } from "../_lib/context";
 import { getTasks, getCompletions } from "../_lib/storage";
 import { saveTaskCompletion } from "../_lib/tasks";
 import { today } from "../_lib/date";
+import { getTaskStreak } from "../_lib/streaks";
 import { useRouter } from "next/navigation";
 import { CalendarModal } from "./CalendarModal";
 
@@ -281,9 +288,9 @@ export function TaskList() {
                       className="task-progress"
                     />
                   </div>
-                  <div className="rounded-xl border border-border bg-card p-1">
+                  <div className="task-cards">
                     {kidTasks.length === 0 ? (
-                      <div className="p-5 text-sm text-muted-foreground">
+                      <div className="rounded-xl border border-dashed border-border p-5 text-sm text-muted-foreground">
                         No tasks assigned yet. Add tasks in parent settings to
                         get started.
                       </div>
@@ -292,10 +299,17 @@ export function TaskList() {
                         const checked =
                           !!completions[selectedDate]?.[kid.id]?.[task.id];
                         const rowPending = pending === `${kid.id}-${task.id}`;
+                        const streak = getTaskStreak(
+                          completions,
+                          kid.id,
+                          task.id,
+                          selectedDate,
+                          isToday,
+                        );
                         return (
                           <label
                             key={task.id}
-                            className="task-row"
+                            className="task-card"
                             data-completed={checked}
                             data-disabled={
                               !isToday || !!pending || needsRefresh
@@ -324,14 +338,31 @@ export function TaskList() {
                                 <Check className="size-3.5" strokeWidth={3} />
                               ) : null}
                             </span>
-                            <span
-                              className={`min-w-0 flex-1 break-words text-sm leading-6 ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}
-                            >
-                              {task.title}
-                            </span>
-                            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                              +{task.points}
-                              <span className="sr-only"> points</span>
+                            <span className="min-w-0 flex-1">
+                              <span
+                                className={`block break-words text-sm leading-6 ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}
+                              >
+                                {task.title}
+                              </span>
+                              <span className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                                <span className="tabular-nums">
+                                  +{task.points} points
+                                </span>
+                                <span
+                                  className="task-streak inline-flex items-center gap-1.5"
+                                  data-active={streak > 0}
+                                >
+                                  <Flame
+                                    aria-hidden="true"
+                                    className="size-3.5"
+                                  />
+                                  <span className="tabular-nums">
+                                    {streak > 0
+                                      ? `${streak}-day streak`
+                                      : "Start a streak"}
+                                  </span>
+                                </span>
+                              </span>
                             </span>
                           </label>
                         );

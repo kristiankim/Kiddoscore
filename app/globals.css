@@ -433,18 +433,28 @@
     transition-duration: 0.01ms !important;
   }
 }
-/* A child's checklist is a single surface, with quiet, full-width rows. */
+/* Independent task cards keep each daily habit easy to scan and select. */
 .task-screen { width: 100%; margin-inline: auto; }
 .task-screen[data-count="1"] { max-width: 720px; }
 .task-screen[data-count="2"] { max-width: 920px; }
 .task-grid { display: grid; gap: 32px; grid-template-columns: minmax(0, 1fr); }
 .task-child[data-selected="false"] { display: none; }
-.task-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 14px 12px; border-radius: 8px; transition: background-color 160ms ease-out; }
-.task-row:not([data-disabled="true"]) { cursor: pointer; }
-.task-row:focus-within { outline: 2px solid var(--ring); outline-offset: -2px; }
-.task-row[data-completed="true"] { color: var(--muted-foreground); }
-.task-row[data-disabled="true"] { cursor: default; }
-@media (hover: hover) { .task-row:not([data-disabled="true"]):hover { background: var(--muted); } }
+.task-cards { display: flex; flex-direction: column; gap: 12px; }
+.task-card { display: flex; align-items: flex-start; gap: 12px; min-height: 88px; padding: 18px 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--card); transition: transform 180ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease-out, border-color 180ms ease-out; }
+.task-card > span[aria-hidden] { margin-top: 2px; }
+.task-card:not([data-disabled="true"]) { cursor: pointer; }
+.task-card:has(input:focus-visible) { outline: 2px solid var(--ring); outline-offset: 3px; }
+.task-card[data-completed="true"] { color: var(--muted-foreground); }
+.task-card[data-disabled="true"] { cursor: default; }
+.task-streak[data-active="true"] { color: hsl(var(--brand)); }
+@media (hover: hover) and (pointer: fine) {
+  .task-card:not([data-disabled="true"]):hover { transform: translateY(-2px); border-color: var(--muted-foreground); box-shadow: 0 4px 12px rgb(0 0 0 / 6%); }
+  .task-card:not([data-disabled="true"]):active { transform: translateY(0); box-shadow: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .task-card { transition: none; }
+  .task-card:not([data-disabled="true"]):hover { transform: none; }
+}
 @media (min-width: 768px) {
   .task-child[data-selected="false"] { display: block; }
   .task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
