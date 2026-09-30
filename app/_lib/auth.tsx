@@ -22,6 +22,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -42,6 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) return { error: new Error('Account sign-in is unavailable. You can explore Sparkquest using the demo below.') };
     const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
@@ -50,6 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) return { error: new Error('Account creation is unavailable. You can explore Sparkquest using the demo.') };
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -58,10 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    if (!supabase) return;
     await supabase.auth.signOut();
   };
 
   const resetPassword = async (email: string) => {
+    if (!supabase) return { error: new Error('Password reset is unavailable until account sign-in is configured.') };
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/auth/reset-password`,
     });

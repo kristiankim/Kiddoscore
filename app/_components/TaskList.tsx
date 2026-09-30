@@ -1,266 +1,355 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Task, Kid, Completions } from '../_lib/types';
-import { useKidContext } from '../_lib/context';
-import { getTasks, getCompletions, updateKid, toggleCompletion } from '../_lib/storage';
-import { applyTaskToggle, getTodayCompletions } from '../_lib/points';
-import { today } from '../_lib/date';
-import { useRouter } from 'next/navigation';
-import { CalendarModal } from './CalendarModal';
+import { useState, useEffect, useRef } from "react";
+import { CalendarDays, ArrowUpRight, Check, Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Task, Kid, Completions } from "../_lib/types";
+import { useKidContext } from "../_lib/context";
+import { getTasks, getCompletions } from "../_lib/storage";
+import { saveTaskCompletion } from "../_lib/tasks";
+import { today } from "../_lib/date";
+import { useRouter } from "next/navigation";
+import { CalendarModal } from "./CalendarModal";
 
 export function TaskList() {
-  const { kids, refreshKids, setSelectedKid, isLoading: kidsLoading } = useKidContext();
+  const {
+    kids,
+    selectedKid,
+    refreshKids,
+    setSelectedKid,
+    isLoading: kidsLoading,
+  } = useKidContext();
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [completions, setCompletionsState] = useState<Completions>({});
+  const [completions, setCompletions] = useState<Completions>({});
   const [selectedDate, setSelectedDate] = useState(() => today());
   const [showCalendar, setShowCalendar] = useState(false);
-  const [isLoadingTasks, setIsLoadingTasks] = useState(true);
-  const [announcement, setAnnouncement] = useState('');
-  const [recentPoints, setRecentPoints] = useState<Record<string, number>>({});
-  const [recentlyChecked, setRecentlyChecked] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+  const [pending, setPending] = useState<string | null>(null);
+  const saving = useRef(false);
+  const calendarTrigger = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+  const isToday = selectedDate === today();
+
+  async function loadData() {
+    setLoading(true);
+    setError("");
+    try {
+      const [allTasks, savedCompletions] = await Promise.all([
+        getTasks(),
+        getCompletions(),
+      ]);
+      setTasks(allTasks.filter((task) => task.active));
+      setCompletions(savedCompletions);
+      await refreshKids();
+      setNeedsRefresh(false);
+    } catch {
+      setError("Your tasks could not be loaded. Please try again.");
+      setNeedsRefresh(true);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    const loadData = async () => {
-      setIsLoadingTasks(true);
-      const allTasks = await getTasks();
-      setTasks(allTasks.filter(t => t.active));
-      setCompletionsState(await getCompletions());
-      setIsLoadingTasks(false);
-    };
-    loadData();
+    void loadData();
   }, []);
 
-  const handleTaskToggle = (kid: Kid, task: Task, checked: boolean) => {
-    // Only allow toggling for today's date
-    const todayDate = today();
-    if (selectedDate !== todayDate) return;
-
-    const updateData = async () => {
-      const result = applyTaskToggle(kid, task, checked, completions);
-
-      if (checked) {
-        const animKey = `${kid.id}-${task.id}`;
-        setRecentlyChecked(prev => new Set(prev).add(animKey));
-        setRecentPoints(prev => ({ ...prev, [animKey]: task.points }));
-        setTimeout(() => {
-          setRecentlyChecked(prev => { const n = new Set(prev); n.delete(animKey); return n; });
-        }, 500);
-        setTimeout(() => {
-          setRecentPoints(prev => { const n = { ...prev }; delete n[animKey]; return n; });
-        }, 1400);
-      }
-
-      await updateKid(result.kid);
-      await toggleCompletion(kid.id, task.id, selectedDate, checked);
-      setCompletionsState(result.completions);
-      refreshKids();
-
+  async function handleTaskToggle(kid: Kid, task: Task, checked: boolean) {
+    if (!isToday || saving.current || needsRefresh) return;
+    saving.current = true;
+    setPending(`${kid.id}-${task.id}`);
+    setError("");
+    const previous = completions;
+    setCompletions((current) => ({
+      ...current,
+      [selectedDate]: {
+        ...current[selectedDate],
+        [kid.id]: { ...current[selectedDate]?.[kid.id], [task.id]: checked },
+      },
+    }));
+    try {
+      const result = await saveTaskCompletion(
+        kid.id,
+        task,
+        selectedDate,
+        checked,
+      );
+      setCompletions(result.completions);
+      await refreshKids();
       setAnnouncement(
         checked
-          ? `${task.title} completed. +${task.points} points earned.`
-          : `${task.title} marked incomplete.`
+          ? `${task.title} completed. ${task.points} points earned.`
+          : `${task.title} marked incomplete.`,
       );
-    };
-
-    updateData();
-  };
-
-  if (kidsLoading || isLoadingTasks) {
-    return (
-      <div className="space-y-4">
-        <div className="flex items-center justify-between mb-10">
-          <div className="h-8 bg-gray-200 rounded animate-pulse w-64"></div>
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-24"></div>
-        </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse"></div>
-                <div className="space-y-1">
-                  <div className="h-4 bg-gray-200 rounded animate-pulse w-16"></div>
-                  <div className="h-3 bg-gray-200 rounded animate-pulse w-12"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {[1, 2, 3, 4].map(j => (
-                  <div key={j} className="card flex items-center gap-3">
-                    <div className="w-4 h-4 bg-gray-200 rounded animate-pulse"></div>
-                    <div className="flex-1 space-y-1">
-                      <div className="h-4 bg-gray-200 rounded animate-pulse w-full"></div>
-                      <div className="h-3 bg-gray-200 rounded animate-pulse w-12"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="h-10 bg-gray-200 rounded animate-pulse w-full"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    } catch {
+      setCompletions(previous);
+      setError("That change could not be saved. Refresh before trying again.");
+      setNeedsRefresh(true);
+    } finally {
+      saving.current = false;
+      setPending(null);
+    }
   }
 
-  if (kids.length === 0) {
-    return <div className="text-gray-500">No kids found</div>;
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString + 'T12:00:00'); // Avoid timezone issues
-    const options: Intl.DateTimeFormatOptions = {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    };
-    return date.toLocaleDateString('en-US', options);
-  };
-
-  const isToday = () => {
-    return selectedDate === today();
-  };
-
-  const getDateCompletions = (kidId: string) => {
-    return completions[selectedDate]?.[kidId] || {};
-  };
+  const activeKidId = kids.some((kid) => kid.id === selectedKid?.id)
+    ? selectedKid.id
+    : kids[0]?.id;
+  const dateLabel = new Date(`${selectedDate}T12:00:00`).toLocaleDateString(
+    "en-US",
+    {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+    },
+  );
 
   return (
-    <div className="space-y-4">
-      {/* Screen reader announcements for task completion */}
-      <div role="status" aria-live="polite" aria-atomic="true" className="sr-only">
+    <div className="task-screen" data-count={kids.length || 1}>
+      <div className="sr-only" role="status" aria-live="polite">
         {announcement}
       </div>
-
-      <div className="flex items-center justify-between mb-10">
-        <h1 className="text-3xl text-gray-900 tracking-tight">{formatDate(selectedDate)}</h1>
-        <div className="flex items-center gap-3">
-          {!isToday() && (
-            <button
+      <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-foreground">
+            {isToday ? "Today" : "Past tasks"}
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">{dateLabel}</p>
+        </div>
+        <div className="flex items-center gap-1">
+          {!isToday && (
+            <Button
+              variant="ghost"
+              className="min-h-11 px-3"
               onClick={() => setSelectedDate(today())}
-              className="text-brand hover:text-brand-dark text-sm font-medium min-h-[44px] flex items-center px-2"
             >
-              View today
-            </button>
+              Today
+            </Button>
           )}
-          <button
+          <Button
+            ref={calendarTrigger}
+            disabled={!!pending}
+            variant="outline"
+            className="min-h-11 gap-2 px-3"
             onClick={() => setShowCalendar(true)}
-            className="text-brand hover:text-brand-dark text-sm font-medium flex items-center gap-1.5 min-h-[44px] px-2"
+            aria-haspopup="dialog"
+            aria-expanded={showCalendar}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            Open calendar
-          </button>
+            <CalendarDays aria-hidden="true" /> Calendar
+          </Button>
         </div>
       </div>
 
-      {tasks.length === 0 ? (
-        <div className="text-gray-500">No active tasks</div>
-      ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {kids.map(kid => {
-            const dateCompletions = getDateCompletions(kid.id);
-            const kidTasks = tasks.filter(task =>
-              !task.assignedKids || task.assignedKids.length === 0 || task.assignedKids.includes(kid.id)
-            );
-            const allTasksDone = isToday() && kidTasks.length > 0 && kidTasks.every(task => dateCompletions[task.id]);
-
-            return (
-              <div key={kid.id} className="space-y-4">
-                <div className="flex items-center gap-3 px-1">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-brand/10" style={{ backgroundColor: 'hsl(var(--brand))' }}>
-                    {kid.avatar || kid.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="font-bold text-gray-900 leading-tight">{kid.name}</div>
-                    <div className="text-sm font-medium text-brand tabular-nums">{kid.points} pts available</div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  {kidTasks.map(task => {
-                    const isCompleted = dateCompletions[task.id] || false;
-                    const canToggle = isToday();
-
-                    return (
-                      <label
-                        key={`${kid.id}-${task.id}`}
-                        className={`card flex items-center gap-4 cursor-pointer hover:shadow-md active:scale-[0.99] group relative ${isCompleted ? 'border-success/30' : 'border-border'
-                          }`}
-                        style={isCompleted ? { backgroundColor: 'hsl(var(--success-light))' } : {}}
-                      >
-                        <div className="relative flex items-center justify-center">
-                          <input
-                            type="checkbox"
-                            checked={isCompleted}
-                            onChange={e => handleTaskToggle(kid, task, e.target.checked)}
-                            disabled={!canToggle}
-                            className="peer sr-only"
-                            aria-describedby={`task-${kid.id}-${task.id}-points`}
-                          />
-                          <div className={[
-                            'w-6 h-6 rounded-lg border-2 transition-colors duration-200 flex items-center justify-center',
-                            isCompleted ? 'bg-emerald-500 border-emerald-500' : 'border-gray-200 group-hover:border-brand bg-white',
-                            isCompleted && recentlyChecked.has(`${kid.id}-${task.id}`) ? 'animate-check-pop' : '',
-                          ].join(' ')}>
-                            {isCompleted && (
-                              <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                              </svg>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <div className={`text-base font-semibold transition-all duration-200 ${isCompleted ? 'text-emerald-900/60 line-through' : 'text-gray-900'
-                            }`}>
-                            {task.title}
-                          </div>
-                          <div
-                            id={`task-${kid.id}-${task.id}-points`}
-                            className={`text-sm font-medium tabular-nums ${isCompleted ? 'text-emerald-600' : 'text-gray-500'}`}
-                          >
-                            +{task.points} points
-                          </div>
-                        </div>
-                        {(`${kid.id}-${task.id}`) in recentPoints && (
-                          <div className="pts-float absolute right-4 top-1/2 -translate-y-1/2 text-emerald-600 text-sm font-bold z-10 whitespace-nowrap">
-                            +{recentPoints[`${kid.id}-${task.id}`]} pts
-                          </div>
-                        )}
-                      </label>
-                    );
-                  })}
-                </div>
-
-                {allTasksDone && (
-                  <div className="animate-fade-slide-up flex items-center gap-2.5 px-4 py-3 rounded-2xl bg-emerald-50 border border-emerald-100">
-                    <span className="text-base leading-none">✨</span>
-                    <span className="text-sm font-semibold text-emerald-700">All done for today!</span>
-                  </div>
-                )}
-                {isToday() && (
-                  <button
-                    onClick={() => {
-                      setSelectedKid(kid);
-                      router.push('/rewards');
-                    }}
-                    className="btn-primary w-full mt-2"
-                  >
-                    Redeem Points
-                  </button>
-                )}
-              </div>
-            );
-          })}
+      {!isToday && (
+        <p className="mb-6 rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+          Viewing past tasks. You can check off tasks for today only.
+        </p>
+      )}
+      {error && (
+        <div
+          role="alert"
+          className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-destructive/30 p-4 text-sm text-destructive"
+        >
+          <p>{error}</p>
+          <Button variant="outline" onClick={loadData} disabled={!!pending}>
+            Refresh tasks
+          </Button>
         </div>
       )}
 
+      {kidsLoading || loading ? (
+        <div
+          role="status"
+          aria-label="Loading tasks"
+          className="space-y-4 motion-safe:animate-pulse"
+        >
+          <div className="h-10 w-40 rounded-lg bg-muted" />
+          {[1, 2, 3, 4].map((row) => (
+            <div key={row} className="h-16 rounded-lg bg-muted" />
+          ))}
+        </div>
+      ) : kids.length === 0 ? (
+        <div className="rounded-xl border border-border bg-card p-8 text-center">
+          <h2 className="text-lg font-semibold">
+            A fresh start for your family
+          </h2>
+          <p className="mb-5 mt-2 text-sm text-muted-foreground">
+            Add your first child to start building a daily routine.
+          </p>
+          <Button
+            onClick={() => router.push("/parent")}
+            className="min-h-11 px-4"
+          >
+            Add a child
+          </Button>
+        </div>
+      ) : (
+        <>
+          {kids.length > 1 && (
+            <div className="mb-6 md:hidden">
+              <label
+                htmlFor="task-child"
+                className="mb-2 block text-sm font-medium"
+              >
+                Showing tasks for
+              </label>
+              <select
+                id="task-child"
+                disabled={!!pending}
+                value={activeKidId}
+                onChange={(event) =>
+                  setSelectedKid(
+                    kids.find((kid) => kid.id === event.target.value)!,
+                  )
+                }
+                className="min-h-11 w-full rounded-lg border border-input bg-background px-3 text-base"
+              >
+                {kids.map((kid) => (
+                  <option key={kid.id} value={kid.id}>
+                    {kid.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="task-grid">
+            {kids.map((kid) => {
+              const kidTasks = tasks.filter(
+                (task) =>
+                  !task.assignedKids?.length ||
+                  task.assignedKids.includes(kid.id),
+              );
+              const completed = kidTasks.filter(
+                (task) => completions[selectedDate]?.[kid.id]?.[task.id],
+              ).length;
+              const allDone =
+                kidTasks.length > 0 && completed === kidTasks.length;
+              return (
+                <section
+                  key={kid.id}
+                  aria-labelledby={`kid-${kid.id}`}
+                  className="task-child min-w-0"
+                  data-selected={kid.id === activeKidId}
+                >
+                  <div className="mb-4 flex items-center gap-3">
+                    <div
+                      aria-hidden="true"
+                      className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-light text-sm font-semibold text-brand"
+                    >
+                      {kid.avatar || kid.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h2
+                        id={`kid-${kid.id}`}
+                        className="break-words text-base font-semibold text-foreground"
+                      >
+                        {kid.name}
+                      </h2>
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        <span className="font-medium tabular-nums text-foreground">
+                          {kid.points}
+                        </span>{" "}
+                        points available
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      className="min-h-11 shrink-0 gap-1 px-2 text-brand"
+                      onClick={() => {
+                        setSelectedKid(kid);
+                        router.push("/rewards");
+                      }}
+                    >
+                      Rewards <ArrowUpRight aria-hidden="true" />
+                    </Button>
+                  </div>
+                  <div className="mb-4">
+                    <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        {allDone ? "All done. Nice work!" : "Daily progress"}
+                      </span>
+                      <span className="tabular-nums">
+                        {completed} of {kidTasks.length}
+                      </span>
+                    </div>
+                    <progress
+                      aria-label={`${kid.name}'s daily progress`}
+                      value={completed}
+                      max={kidTasks.length || 1}
+                      className="task-progress"
+                    />
+                  </div>
+                  <div className="rounded-xl border border-border bg-card p-1">
+                    {kidTasks.length === 0 ? (
+                      <div className="p-5 text-sm text-muted-foreground">
+                        No tasks assigned yet. Add tasks in parent settings to
+                        get started.
+                      </div>
+                    ) : (
+                      kidTasks.map((task) => {
+                        const checked =
+                          !!completions[selectedDate]?.[kid.id]?.[task.id];
+                        const rowPending = pending === `${kid.id}-${task.id}`;
+                        return (
+                          <label
+                            key={task.id}
+                            className="task-row"
+                            data-completed={checked}
+                            data-disabled={
+                              !isToday || !!pending || needsRefresh
+                            }
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={!isToday || !!pending || needsRefresh}
+                              onChange={(event) =>
+                                handleTaskToggle(
+                                  kid,
+                                  task,
+                                  event.target.checked,
+                                )
+                              }
+                              className="peer sr-only"
+                            />
+                            <span
+                              aria-hidden="true"
+                              className={`flex size-5 shrink-0 items-center justify-center rounded-md border transition-colors ${checked ? "border-brand bg-brand text-white" : "border-muted-foreground bg-background"}`}
+                            >
+                              {rowPending ? (
+                                <Loader2 className="size-3.5 motion-safe:animate-spin" />
+                              ) : checked ? (
+                                <Check className="size-3.5" strokeWidth={3} />
+                              ) : null}
+                            </span>
+                            <span
+                              className={`min-w-0 flex-1 break-words text-sm leading-6 ${checked ? "text-muted-foreground line-through" : "text-foreground"}`}
+                            >
+                              {task.title}
+                            </span>
+                            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                              +{task.points}
+                              <span className="sr-only"> points</span>
+                            </span>
+                          </label>
+                        );
+                      })
+                    )}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        </>
+      )}
       <CalendarModal
         isOpen={showCalendar}
-        onClose={() => setShowCalendar(false)}
+        onClose={() => {
+          setShowCalendar(false);
+          requestAnimationFrame(() => calendarTrigger.current?.focus());
+        }}
         onDateSelect={setSelectedDate}
         selectedDate={selectedDate}
       />

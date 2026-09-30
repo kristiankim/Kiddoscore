@@ -59,7 +59,7 @@ export async function getKids(): Promise<Kid[]> {
 
   if (error) {
     handleSupabaseError(error, 'fetching kids');
-    return [];
+    throw error;
   }
 
   return data.map(transformKid);
@@ -104,6 +104,7 @@ export async function updateKid(kid: Kid): Promise<void> {
 
   if (error) {
     console.error('Error updating kid:', error);
+    throw error;
   }
 }
 
@@ -115,6 +116,7 @@ export async function removeKid(kidId: string): Promise<void> {
 
   if (error) {
     console.error('Error removing kid:', error);
+    throw error;
   }
 }
 
@@ -127,7 +129,7 @@ export async function getTasks(): Promise<Task[]> {
 
   if (error) {
     handleSupabaseError(error, 'fetching tasks');
-    return [];
+    throw error;
   }
 
   return data.map(transformTask);
@@ -173,6 +175,7 @@ export async function updateTask(task: Task): Promise<void> {
 
   if (error) {
     console.error('Error updating task:', error);
+    throw error;
   }
 }
 
@@ -184,6 +187,7 @@ export async function removeTask(taskId: string): Promise<void> {
 
   if (error) {
     console.error('Error removing task:', error);
+    throw error;
   }
 }
 
@@ -196,7 +200,7 @@ export async function getRewards(): Promise<Reward[]> {
 
   if (error) {
     handleSupabaseError(error, 'fetching rewards');
-    return [];
+    throw error;
   }
 
   return data.map(transformReward);
@@ -238,6 +242,7 @@ export async function updateReward(reward: Reward): Promise<void> {
 
   if (error) {
     console.error('Error updating reward:', error);
+    throw error;
   }
 }
 
@@ -249,6 +254,7 @@ export async function removeReward(rewardId: string): Promise<void> {
 
   if (error) {
     console.error('Error removing reward:', error);
+    throw error;
   }
 }
 
@@ -261,7 +267,7 @@ export async function getRedemptions(): Promise<Redemption[]> {
 
   if (error) {
     console.error('Error fetching redemptions:', error);
-    return [];
+    throw error;
   }
 
   return data.map(transformRedemption);
@@ -301,6 +307,7 @@ export async function removeRedemption(redemptionId: string): Promise<void> {
 
   if (error) {
     console.error('Error removing redemption:', error);
+    throw error;
   }
 }
 
@@ -312,7 +319,7 @@ export async function getCompletions(): Promise<Completions> {
 
   if (error) {
     console.error('Error fetching completions:', error);
-    return {};
+    throw error;
   }
 
   // Transform flat completion records into the nested structure
@@ -353,6 +360,7 @@ export async function toggleCompletion(kidId: string, taskId: string, date: stri
 
     if (error && error.code !== '23505') { // Ignore unique constraint violations
       console.error('Error adding completion:', error);
+      throw error;
     }
   } else {
     // Remove completion
@@ -365,6 +373,7 @@ export async function toggleCompletion(kidId: string, taskId: string, date: stri
 
     if (error) {
       console.error('Error removing completion:', error);
+      throw error;
     }
   }
 }

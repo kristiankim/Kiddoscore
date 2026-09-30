@@ -1,4 +1,6 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../app/_lib/date', () => ({ today: () => '2024-01-01' }));
 import { applyTaskToggle, redeemReward, recalcPointsFromCompletions } from '../app/_lib/points';
 import { Kid, Task, Completions } from '../app/_lib/types';
 

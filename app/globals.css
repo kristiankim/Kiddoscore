@@ -3,6 +3,22 @@
 @import "shadcn/tailwind.css";
 
 @theme inline {
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-geist-sans), system-ui, sans-serif;
+  --font-heading: var(--font-geist-sans), system-ui, sans-serif;
+  --color-brand: hsl(var(--brand));
+  --color-brand-dark: hsl(var(--brand-dark));
+  --color-brand-light: hsl(var(--brand-light));
+  --color-success: hsl(var(--success));
+  --color-success-light: hsl(var(--success-light));
+  --color-warning: hsl(var(--warning));
+  --color-warning-light: hsl(var(--warning-light));
+  --color-danger: hsl(var(--danger));
+  --color-danger-light: hsl(var(--danger-light));
+  --color-surface: var(--background);
+  --color-surface-secondary: hsl(var(--bg-secondary));
+  --color-content: var(--foreground);
+  --color-content-muted: var(--muted-foreground);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -28,8 +44,7 @@
 }
 
 @theme {
-  --font-family-sans: var(--font-dm-sans), var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-family-display: 'Clash Display', var(--font-family-sans);
+
 
   --color-primary-50: #f5f3ff;
   --color-primary-100: #ede9fe;
@@ -59,27 +74,6 @@
   }
 }
 
-/* Clash Display - Explicit @font-face for better compatibility */
-@font-face {
-  font-family: 'Clash Display';
-  src: url('https://cdn.fontshare.com/wf/2GQIT54GKQY3JRFTSHS4ARTRNRQISSAA/3CIP5EBHRRHE5FVQU3VFROPUERNDSTDF/JTSL5QESUXATU47LCPUNHZQBDDIWDOSW.woff2') format('woff2'),
-    url('https://cdn.fontshare.com/wf/2GQIT54GKQY3JRFTSHS4ARTRNRQISSAA/3CIP5EBHRRHE5FVQU3VFROPUERNDSTDF/JTSL5QESUXATU47LCPUNHZQBDDIWDOSW.woff') format('woff'),
-    url('https://cdn.fontshare.com/wf/2GQIT54GKQY3JRFTSHS4ARTRNRQISSAA/3CIP5EBHRRHE5FVQU3VFROPUERNDSTDF/JTSL5QESUXATU47LCPUNHZQBDDIWDOSW.ttf') format('truetype');
-  font-weight: 500;
-  font-display: swap;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Clash Display';
-  src: url('https://cdn.fontshare.com/wf/FPDAZ2S6SW4QMSRIIKNNGTPM6VIXYMKO/5HNPQ453FRLIQWV2FNOBUU3FKTDZQVSG/Z3MGHFHX6DCTLQ55LJYRJ5MDCZPMFZU6.woff2') format('woff2'),
-    url('https://cdn.fontshare.com/wf/FPDAZ2S6SW4QMSRIIKNNGTPM6VIXYMKO/5HNPQ453FRLIQWV2FNOBUU3FKTDZQVSG/Z3MGHFHX6DCTLQ55LJYRJ5MDCZPMFZU6.woff') format('woff'),
-    url('https://cdn.fontshare.com/wf/FPDAZ2S6SW4QMSRIIKNNGTPM6VIXYMKO/5HNPQ453FRLIQWV2FNOBUU3FKTDZQVSG/Z3MGHFHX6DCTLQ55LJYRJ5MDCZPMFZU6.ttf') format('truetype');
-  font-weight: 600;
-  font-display: swap;
-  font-style: normal;
-}
-
 :root {
   /* Color Palette - HSL for easy transparency */
   --brand: 250 75% 55%;
@@ -106,8 +100,7 @@
   --card-border: 220 15% 90%;
 
   /* Font Variables */
-  --font-sans: var(--font-dm-sans), var(--font-inter), system-ui, -apple-system, sans-serif;
-  --font-display: 'Clash Display', var(--font-sans);
+
 }
 
 @layer base {
@@ -117,6 +110,10 @@
     @apply border-border outline-ring/50;
   }
 
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), summary { cursor: pointer; }
+  button, input, select, textarea { font: inherit; }
+  :focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }
+  input::placeholder, textarea::placeholder { color: var(--muted-foreground); opacity: 1; }
   html {
     font-family: var(--font-sans);
     scroll-behavior: smooth;
@@ -136,12 +133,11 @@
   h2 {
     font-family: var(--font-display);
     font-weight: 500;
-    line-height: 1.15;
+    line-height: 1.25;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
   }
-  .theme {
-    --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
-  }
+
   :root {
     --background: oklch(1 0 0);
     --foreground: oklch(0.145 0 0);
@@ -149,18 +145,18 @@
     --card-foreground: oklch(0.145 0 0);
     --popover: oklch(1 0 0);
     --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.452 0.257 264);
+    --primary: hsl(var(--brand));
     --primary-foreground: oklch(0.985 0 0);
     --secondary: oklch(0.97 0 0);
     --secondary-foreground: oklch(0.205 0 0);
     --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
+    --muted-foreground: oklch(0.46 0.01 265);
     --accent: oklch(0.97 0 0);
     --accent-foreground: oklch(0.205 0 0);
     --destructive: oklch(0.577 0.245 27.325);
     --border: oklch(0.922 0 0);
     --input: oklch(0.922 0 0);
-    --ring: oklch(0.452 0.257 264);
+    --ring: hsl(var(--brand));
     --chart-1: oklch(0.87 0 0);
     --chart-2: oklch(0.556 0 0);
     --chart-3: oklch(0.439 0 0);
@@ -217,7 +213,7 @@
 
 @layer components {
   .btn-primary {
-    @apply btn text-white shadow-lg shadow-indigo-200 hover:shadow-indigo-300;
+    @apply btn text-white;
     background-color: hsl(var(--brand));
     --tw-ring-color: hsl(var(--brand));
   }
@@ -233,13 +229,13 @@
   }
 
   .btn-success {
-    @apply btn text-white shadow-lg shadow-emerald-100 hover:opacity-90;
+    @apply btn text-white hover:opacity-90;
     background-color: hsl(var(--success));
     --tw-ring-color: hsl(var(--success));
   }
 
   .btn-danger {
-    @apply btn text-white shadow-lg shadow-red-100 hover:bg-red-600;
+    @apply btn text-white hover:bg-red-600;
     background-color: hsl(var(--danger));
     --tw-ring-color: hsl(var(--danger));
   }
@@ -247,7 +243,7 @@
   .card {
     @apply rounded-2xl border border-gray-100 p-5 transition-all duration-300;
     background-color: hsl(var(--bg));
-    box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
   }
 
   .card-flat {
@@ -413,24 +409,6 @@
   animation: fadeSlideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: hsl(var(--card-border));
-  border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--text-muted));
-}
-
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -455,3 +433,30 @@
     transition-duration: 0.01ms !important;
   }
 }
+/* A child's checklist is a single surface, with quiet, full-width rows. */
+.task-screen { width: 100%; margin-inline: auto; }
+.task-screen[data-count="1"] { max-width: 720px; }
+.task-screen[data-count="2"] { max-width: 920px; }
+.task-grid { display: grid; gap: 32px; grid-template-columns: minmax(0, 1fr); }
+.task-child[data-selected="false"] { display: none; }
+.task-row { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 14px 12px; border-radius: 8px; transition: background-color 160ms ease-out; }
+.task-row:not([data-disabled="true"]) { cursor: pointer; }
+.task-row:focus-within { outline: 2px solid var(--ring); outline-offset: -2px; }
+.task-row[data-completed="true"] { color: var(--muted-foreground); }
+.task-row[data-disabled="true"] { cursor: default; }
+@media (hover: hover) { .task-row:not([data-disabled="true"]):hover { background: var(--muted); } }
+@media (min-width: 768px) {
+  .task-child[data-selected="false"] { display: block; }
+  .task-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .task-screen[data-count="1"] .task-grid { grid-template-columns: minmax(0, 1fr); }
+}
+@media (min-width: 1100px) {
+  .task-screen:not([data-count="1"]):not([data-count="2"]) .task-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
+.task-progress { display: block; width: 100%; height: 4px; overflow: hidden; border: 0; border-radius: 999px; background: var(--muted); color: hsl(var(--brand)); }
+.task-progress::-webkit-progress-bar { background: var(--muted); border-radius: 999px; }
+.task-progress::-webkit-progress-value { background: hsl(var(--brand)); border-radius: 999px; transition: width 180ms ease-out; }
+.task-progress::-moz-progress-bar { background: hsl(var(--brand)); border-radius: 999px; }

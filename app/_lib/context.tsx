@@ -1,14 +1,20 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Kid } from './types';
-import { getKids, seedData } from './storage';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { Kid } from "./types";
+import { getKids, seedData } from "./storage";
 
 interface KidContextType {
   selectedKid: Kid | null;
   setSelectedKid: (kid: Kid) => void;
   kids: Kid[];
-  refreshKids: () => void;
+  refreshKids: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -32,10 +38,8 @@ export function KidProvider({ children }: { children: ReactNode }) {
       if (!selectedKid && currentKids.length > 0) {
         setSelectedKid(currentKids[0]);
       } else if (selectedKid) {
-        const updated = currentKids.find(k => k.id === selectedKid.id);
-        if (updated) {
-          setSelectedKid(updated);
-        }
+        const updated = currentKids.find((k) => k.id === selectedKid.id);
+        setSelectedKid(updated || currentKids[0] || null);
       }
     } finally {
       if (isInitialLoad) {
@@ -46,14 +50,20 @@ export function KidProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initializeData = async () => {
-      await seedData();
-      await refreshKids();
+      try {
+        await seedData();
+        await refreshKids();
+      } catch {
+        setIsLoading(false);
+      }
     };
     initializeData();
   }, []);
 
   return (
-    <KidContext.Provider value={{ selectedKid, setSelectedKid, kids, refreshKids, isLoading }}>
+    <KidContext.Provider
+      value={{ selectedKid, setSelectedKid, kids, refreshKids, isLoading }}
+    >
       {children}
     </KidContext.Provider>
   );
@@ -62,7 +72,7 @@ export function KidProvider({ children }: { children: ReactNode }) {
 export function useKidContext() {
   const context = useContext(KidContext);
   if (!context) {
-    throw new Error('useKidContext must be used within KidProvider');
+    throw new Error("useKidContext must be used within KidProvider");
   }
   return context;
 }

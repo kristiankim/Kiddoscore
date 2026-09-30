@@ -81,7 +81,7 @@ function safeSet<T>(key: string, value: T): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    // Silent fail
+    throw new Error('Unable to save changes on this device.');
   }
 }
 
@@ -330,10 +330,10 @@ export function verifyPasscode(passcode: string): boolean {
 }
 
 export async function seedData(): Promise<void> {
-  if (!isClient()) return;
+  if (!isClient() || isSupabaseConfigured()) return;
 
   const kids = await getKids();
-  if (kids.length === 0) {
+  if (kids.length === 0 && safeGet<Kid[] | null>(STORAGE_KEYS.kids, null) === null) {
     const seedKids: Kid[] = [
       { id: uid(), name: 'Eli', points: 50 },
       { id: uid(), name: 'Ethan', points: 35 },
@@ -343,7 +343,7 @@ export async function seedData(): Promise<void> {
   }
 
   const tasks = await getTasks();
-  if (tasks.length === 0) {
+  if (tasks.length === 0 && safeGet<Task[] | null>(STORAGE_KEYS.tasks, null) === null) {
     const seedTasks: Task[] = [
       { id: uid(), title: 'Do math workbook', points: 10, active: true },
       { id: uid(), title: 'Clean room', points: 8, active: true },
@@ -354,7 +354,7 @@ export async function seedData(): Promise<void> {
   }
 
   const rewards = await getRewards();
-  if (rewards.length === 0) {
+  if (rewards.length === 0 && safeGet<Reward[] | null>(STORAGE_KEYS.rewards, null) === null) {
     const seedRewards: Reward[] = [
       { id: uid(), label: '15 min YouTube Kids', cost: 20 },
       { id: uid(), label: '30 min Game Time', cost: 30 },

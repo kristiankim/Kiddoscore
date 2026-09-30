@@ -1,22 +1,10 @@
 import type { Metadata } from 'next'
-import { Inter, DM_Sans } from 'next/font/google'
+import { GeistSans } from 'geist/font/sans'
 import './globals.css'
 import { Header } from './_components/Header'
 import { KidProvider } from './_lib/context'
 import { AuthProvider } from './_lib/auth'
 import { cn } from "@/lib/utils";
-
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-inter',
-  display: 'swap',
-})
-
-const dmSans = DM_Sans({
-  subsets: ['latin'],
-  variable: '--font-dm-sans',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'Sparkquest',
@@ -29,12 +17,12 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={cn(inter.variable, dmSans.variable, "font-sans")}>
+    <html lang="en" className={cn(GeistSans.variable, "font-sans")}>
       <body className="font-sans min-h-screen bg-surface-secondary">
         <AuthProvider>
           <KidProvider>
             <Header />
-            <main className="container mx-auto px-4 py-6 max-w-6xl">
+            <main className="container mx-auto px-4 py-8 sm:px-6 sm:py-10 max-w-6xl">
               {children}
             </main>
           </KidProvider>

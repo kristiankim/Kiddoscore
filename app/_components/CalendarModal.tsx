@@ -25,7 +25,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
   useEffect(() => {
     if (!isOpen) return;
 
-    const selected = new Date(selectedDate);
+    const selected = new Date(selectedDate + 'T12:00:00');
     setCurrentMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
 
     // Focus close button on open
@@ -99,7 +99,7 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
       aria-modal="true"
       aria-labelledby="calendar-title"
     >
-      <div ref={trapRef} className="card max-w-sm w-full p-6">
+      <div ref={trapRef} className="card max-w-sm w-full p-4 max-h-[90dvh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h2 id="calendar-title" className="text-lg font-semibold text-gray-900">
             Select Date
@@ -158,14 +158,15 @@ export function CalendarModal({ isOpen, onClose, onDateSelect, selectedDate }: C
                 onClick={() => handleDateClick(date)}
                 disabled={isFuture}
                 className={`
-                  h-11 w-11 text-sm rounded-lg transition-colors
-                  ${!isCurrentMonthDay ? 'text-gray-300' : ''}
-                  ${isTodayDate ? 'bg-brand-light text-brand font-medium' : ''}
+                  h-11 w-full min-w-0 text-sm rounded-lg transition-colors
+                  ${!isCurrentMonthDay && !isSelectedDate && !isFuture ? 'text-muted-foreground' : ''}
+                  ${isTodayDate && !isSelectedDate ? 'bg-brand-light text-brand font-medium' : ''}
                   ${isSelectedDate ? 'bg-brand text-white' : ''}
-                  ${isFuture ? 'text-gray-300 cursor-not-allowed' : 'hover:bg-gray-100'}
+                  ${isFuture ? 'text-gray-400 cursor-not-allowed' : isSelectedDate ? 'hover:bg-brand-dark' : 'hover:bg-muted'}
                   ${!isTodayDate && !isSelectedDate && isCurrentMonthDay && !isFuture ? 'text-gray-900' : ''}
                 `}
                 aria-label={`Select ${date.toLocaleDateString()}`}
+                aria-pressed={isSelectedDate}
               >
                 {date.getDate()}
               </button>

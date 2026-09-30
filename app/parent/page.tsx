@@ -1,652 +1,811 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Kid, Task, Reward } from '../_lib/types';
+import { useEffect, useRef, useState } from "react";
 import {
-  getKids, getTasks, getRewards, getCompletions, setCompletions,
-  addKid, updateKid, removeKid, addTask, updateTask, removeTask,
-  addReward, updateReward, removeReward
-} from '../_lib/storage';
-import { clearTodayCompletions, clearAllCompletions, recalcPointsFromCompletions } from '../_lib/points';
-import { getWeekRange, isDateInRange } from '../_lib/date';
-import { useKidContext } from '../_lib/context';
-import { StatCard } from '../_components/StatCard';
-import { ConfirmDialog } from '../_components/ConfirmDialog';
-import { DesignSystem } from '../_components/DesignSystem';
-import Link from 'next/link';
+  Pencil,
+  Trash2,
+  Plus,
+  Loader2,
+  Users,
+  ListChecks,
+  Gift,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Kid, Task, Reward, Completions } from "../_lib/types";
+import * as storage from "../_lib/storage";
+import { saveTaskCompletion } from "../_lib/tasks";
+import { today, getWeekRange, isDateInRange } from "../_lib/date";
+import { useKidContext } from "../_lib/context";
+
+type Section = "kids" | "tasks" | "rewards";
+type Draft = {
+  id?: string;
+  name: string;
+  points: string;
+  assignedKids: string[];
+};
+type Confirmation = {
+  title: string;
+  message: string;
+  label: string;
+  action: () => Promise<void>;
+};
+const emptyDraft = (): Draft => ({ name: "", points: "5", assignedKids: [] });
+const actionStyle = "min-h-11 px-3";
 
 export default function ParentPage() {
   const { refreshKids } = useKidContext();
+  const [kids, setKids] = useState<Kid[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [completions, setCompletions] = useState<Completions>({});
+  const [section, setSection] = useState<Section>("kids");
+  const [draft, setDraft] = useState<Draft>(emptyDraft);
+  const [loading, setLoading] = useState(true);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [message, setMessage] = useState("");
+  const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
+  const busy = useRef(false);
+  const editor = useRef<HTMLFormElement>(null);
+  const refreshTrigger = useRef<HTMLButtonElement>(null);
+  const confirmTrigger = useRef<HTMLElement | null>(null);
 
-  const [kids, setKidsState] = useState<Kid[]>([]);
-  const [tasks, setTasksState] = useState<Task[]>([]);
-  const [rewards, setRewardsState] = useState<Reward[]>([]);
-
-  const [newKidName, setNewKidName] = useState('');
-  const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskPoints, setNewTaskPoints] = useState('');
-  const [newTaskAssignedKids, setNewTaskAssignedKids] = useState<string[]>([]);
-  const [newRewardLabel, setNewRewardLabel] = useState('');
-  const [newRewardCost, setNewRewardCost] = useState('');
-
-  const [confirmAction, setConfirmAction] = useState<{ type: string; data?: any } | null>(null);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [editTaskTitle, setEditTaskTitle] = useState('');
-  const [editTaskPoints, setEditTaskPoints] = useState('');
-  const [editTaskAssignedKids, setEditTaskAssignedKids] = useState<string[]>([]);
-  const [editingReward, setEditingReward] = useState<Reward | null>(null);
-  const [editRewardLabel, setEditRewardLabel] = useState('');
-  const [editRewardCost, setEditRewardCost] = useState('');
-  const [activeTab, setActiveTab] = useState('kids');
+  async function loadData() {
+    const [nextKids, nextTasks, nextRewards, nextCompletions] =
+      await Promise.all([
+        storage.getKids(),
+        storage.getTasks(),
+        storage.getRewards(),
+        storage.getCompletions(),
+      ]);
+    setKids(nextKids);
+    setTasks(nextTasks);
+    setRewards(nextRewards);
+    setCompletions(nextCompletions);
+  }
 
   useEffect(() => {
-    loadData();
+    let mounted = true;
+    loadData()
+      .catch(() => {
+        if (mounted)
+          setError("Settings could not be loaded. Please try again.");
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  const loadData = async () => {
-    setKidsState(await getKids());
-    setTasksState(await getTasks());
-    setRewardsState(await getRewards());
-  };
-
-  const addKidHandler = async () => {
-    if (newKidName.trim()) {
-      const result = await addKid({
-        name: newKidName.trim(),
-        points: 0
-      });
-      if (result) {
-        setNewKidName('');
-        await loadData();
-        refreshKids();
-      }
-    }
-  };
-
-  const removeKidHandler = async (kidId: string) => {
-    await removeKid(kidId);
-    await loadData();
-    refreshKids();
-  };
-
-  const adjustPoints = async (kidId: string, delta: number) => {
-    const kid = kids.find(k => k.id === kidId);
-    if (kid) {
-      await updateKid({ ...kid, points: Math.max(0, kid.points + delta) });
+  async function run(
+    action: () => Promise<void>,
+    success: string,
+  ): Promise<boolean> {
+    if (busy.current) return false;
+    busy.current = true;
+    setPending(true);
+    setError("");
+    setMessage("");
+    try {
+      await action();
       await loadData();
-      refreshKids();
+      await refreshKids();
+      setNeedsRefresh(false);
+      setMessage(success);
+      return true;
+    } catch {
+      setNeedsRefresh(true);
+      setError(
+        "Your change could not be saved. Please refresh settings and check the result before trying again.",
+      );
+      return false;
+    } finally {
+      busy.current = false;
+      setPending(false);
     }
+  }
+
+  const changeSection = (value: Section) => {
+    setSection(value);
+    setDraft(emptyDraft());
+    if (!needsRefresh) setError("");
+    setMessage("");
   };
 
-  const addTaskHandler = async () => {
-    if (newTaskTitle.trim() && newTaskPoints) {
-      const result = await addTask({
-        title: newTaskTitle.trim(),
-        points: parseInt(newTaskPoints),
-        active: true,
-        assignedKids: newTaskAssignedKids.length > 0 ? newTaskAssignedKids : undefined
-      });
-      if (result) {
-        setNewTaskTitle('');
-        setNewTaskPoints('');
-        setNewTaskAssignedKids([]);
-        await loadData();
-      }
-    }
-  };
-
-  const handleKidAssignmentToggle = (kidId: string) => {
-    setNewTaskAssignedKids(prev =>
-      prev.includes(kidId)
-        ? prev.filter(id => id !== kidId)
-        : [...prev, kidId]
-    );
-  };
-
-  const toggleTask = async (taskId: string) => {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-      await updateTask({ ...task, active: !task.active });
-      await loadData();
-    }
-  };
-
-  const removeTaskHandler = async (taskId: string) => {
-    await removeTask(taskId);
-    await loadData();
-  };
-
-  const openEditTaskModal = (task: Task) => {
-    setEditingTask(task);
-    setEditTaskTitle(task.title);
-    setEditTaskPoints(task.points.toString());
-    setEditTaskAssignedKids(task.assignedKids || []);
-  };
-
-  const closeEditTaskModal = () => {
-    setEditingTask(null);
-    setEditTaskTitle('');
-    setEditTaskPoints('');
-    setEditTaskAssignedKids([]);
-  };
-
-  const saveTaskEdit = async () => {
-    if (!editingTask || !editTaskTitle.trim() || !editTaskPoints) return;
-
-    await updateTask({
-      ...editingTask,
-      title: editTaskTitle.trim(),
-      points: parseInt(editTaskPoints),
-      assignedKids: editTaskAssignedKids.length > 0 ? editTaskAssignedKids : undefined
+  const startEdit = (item: Kid | Task | Reward) => {
+    setDraft({
+      id: item.id,
+      name:
+        "name" in item ? item.name : "title" in item ? item.title : item.label,
+      points: String("cost" in item ? item.cost : item.points),
+      assignedKids: "assignedKids" in item ? item.assignedKids || [] : [],
     });
-
-    await loadData();
-    closeEditTaskModal();
-  };
-
-  const handleEditKidAssignmentToggle = (kidId: string) => {
-    setEditTaskAssignedKids(prev =>
-      prev.includes(kidId)
-        ? prev.filter(id => id !== kidId)
-        : [...prev, kidId]
-    );
-  };
-
-  const openEditRewardModal = (reward: Reward) => {
-    setEditingReward(reward);
-    setEditRewardLabel(reward.label);
-    setEditRewardCost(reward.cost.toString());
-  };
-
-  const closeEditRewardModal = () => {
-    setEditingReward(null);
-    setEditRewardLabel('');
-    setEditRewardCost('');
-  };
-
-  const saveRewardEdit = async () => {
-    if (!editingReward || !editRewardLabel.trim() || !editRewardCost) return;
-
-    await updateReward({
-      ...editingReward,
-      label: editRewardLabel.trim(),
-      cost: parseInt(editRewardCost)
+    setError("");
+    setMessage("");
+    requestAnimationFrame(() => {
+      editor.current?.scrollIntoView({ block: "nearest", behavior: "auto" });
+      editor.current?.querySelector<HTMLInputElement>("input")?.focus();
     });
-
-    await loadData();
-    closeEditRewardModal();
   };
 
-  const addRewardHandler = async () => {
-    if (newRewardLabel.trim() && newRewardCost) {
-      const result = await addReward({
-        label: newRewardLabel.trim(),
-        cost: parseInt(newRewardCost)
-      });
-      if (result) {
-        setNewRewardLabel('');
-        setNewRewardCost('');
-        await loadData();
-      }
+  async function save(event: React.FormEvent) {
+    event.preventDefault();
+    const name = draft.name.trim();
+    const points = Number(draft.points);
+    if (
+      !name ||
+      (section !== "kids" &&
+        (!draft.points.trim() || !Number.isSafeInteger(points) || points < 1))
+    ) {
+      setError("Enter a name and a positive whole number for points.");
+      return;
     }
-  };
-
-  const removeRewardHandler = async (rewardId: string) => {
-    await removeReward(rewardId);
-    await loadData();
-  };
-
-  const clearKidToday = async (kidId: string) => {
-    const completions = await getCompletions();
-    const kid = kids.find(k => k.id === kidId);
-    if (!kid) return;
-
-    const clearedCompletions = clearTodayCompletions(kidId, completions);
-    const pointsLost = kid.points - recalcPointsFromCompletions(kid, tasks, clearedCompletions);
-
-    await setCompletions(clearedCompletions);
-    await updateKid({ ...kid, points: Math.max(0, kid.points - pointsLost) });
-    await loadData();
-    refreshKids();
-  };
-
-  const newWeek = async () => {
-    await setCompletions(clearAllCompletions());
-  };
-
-  const getWeeklyStats = async () => {
-    const { start, end } = getWeekRange();
-    const completions = await getCompletions();
-
-    return kids.map(kid => {
-      let weekPoints = 0;
-
-      Object.entries(completions).forEach(([date, dayCompletions]) => {
-        if (isDateInRange(date, start, end)) {
-          const kidCompletions = dayCompletions[kid.id] || {};
-          Object.entries(kidCompletions).forEach(([taskId, isCompleted]) => {
-            if (isCompleted) {
-              const task = tasks.find(t => t.id === taskId);
-              if (task) weekPoints += task.points;
-            }
-          });
+    const saved = await run(
+      async () => {
+        if (section === "kids") {
+          const current = (await storage.getKids()).find(
+            (kid) => kid.id === draft.id,
+          );
+          if (draft.id && !current) throw new Error("Item no longer exists");
+          if (draft.id && current)
+            await storage.updateKid({ ...current, name });
+          else if (!(await storage.addKid({ name, points: 0 })))
+            throw new Error("Child not added");
+        } else if (section === "tasks") {
+          const current = (await storage.getTasks()).find(
+            (task) => task.id === draft.id,
+          );
+          if (draft.id && !current) throw new Error("Item no longer exists");
+          const values = {
+            title: name,
+            points,
+            assignedKids: draft.assignedKids,
+          };
+          if (draft.id && current)
+            await storage.updateTask({ ...current, ...values });
+          else if (!(await storage.addTask({ ...values, active: true })))
+            throw new Error("Task not added");
+        } else {
+          const values = { label: name, cost: points };
+          const current = (await storage.getRewards()).find(
+            (reward) => reward.id === draft.id,
+          );
+          if (draft.id && !current) throw new Error("Item no longer exists");
+          if (draft.id && current)
+            await storage.updateReward({ ...current, ...values });
+          else if (!(await storage.addReward(values)))
+            throw new Error("Reward not added");
         }
-      });
+      },
+      `${section === "kids" ? "Child" : section === "tasks" ? "Task" : "Reward"} ${draft.id ? "updated" : "added"}.`,
+    );
+    if (saved) {
+      setDraft(emptyDraft());
+      editor.current?.querySelector<HTMLInputElement>("input")?.focus();
+    }
+  }
 
-      return { kid, weekPoints };
+  function ask(value: Confirmation) {
+    confirmTrigger.current = document.activeElement as HTMLElement;
+    setError("");
+    setConfirmation(value);
+  }
+  function closeConfirmation() {
+    setConfirmation(null);
+    requestAnimationFrame(() => {
+      if (
+        confirmTrigger.current?.isConnected &&
+        !confirmTrigger.current.matches(":disabled")
+      )
+        confirmTrigger.current.focus();
+      else refreshTrigger.current?.focus();
     });
+  }
+
+  async function adjustPoints(kid: Kid, delta: number) {
+    await run(async () => {
+      const current = (await storage.getKids()).find(
+        (item) => item.id === kid.id,
+      );
+      if (!current) throw new Error("Child missing");
+      await storage.updateKid({
+        ...current,
+        points: Math.max(0, current.points + delta),
+      });
+    }, `${kid.name}'s points updated.`);
+  }
+
+  async function clearToday(kid: Kid) {
+    const date = today();
+    const [currentKids, currentTasks, currentCompletions] = await Promise.all([
+      storage.getKids(),
+      storage.getTasks(),
+      storage.getCompletions(),
+    ]);
+    const currentKid = currentKids.find((item) => item.id === kid.id);
+    if (!currentKid) throw new Error("Child missing");
+    for (const [taskId, completed] of Object.entries(
+      currentCompletions[date]?.[kid.id] || {},
+    )) {
+      if (!completed) continue;
+      const task = currentTasks.find((item) => item.id === taskId);
+      if (task) await saveTaskCompletion(kid.id, task, date, false);
+      else await storage.toggleCompletion(kid.id, taskId, date, false);
+    }
+  }
+
+  const { start, end } = getWeekRange();
+  function weeklyPoints(kidId: string) {
+    return Object.entries(completions).reduce(
+      (total, [date, day]) =>
+        total +
+        (isDateInRange(date, start, end)
+          ? Object.entries(day[kidId] || {}).reduce(
+              (sum, [taskId, done]) =>
+                sum +
+                (done
+                  ? tasks.find((task) => task.id === taskId)?.points || 0
+                  : 0),
+              0,
+            )
+          : 0),
+      0,
+    );
+  }
+  const noun =
+    section === "kids" ? "child" : section === "tasks" ? "task" : "reward";
+  const counts = {
+    kids: kids.length,
+    tasks: tasks.length,
+    rewards: rewards.length,
   };
-
-  const [weeklyStats, setWeeklyStats] = useState<{ kid: Kid; weekPoints: number }[]>([]);
-
-  useEffect(() => {
-    const loadWeeklyStats = async () => {
-      const stats = await getWeeklyStats();
-      setWeeklyStats(stats);
-    };
-    loadWeeklyStats();
-  }, [kids, tasks]); // Recalculate when kids or tasks change
-
-  const tabs = [
-    { id: 'kids', label: 'Kids' },
-    { id: 'tasks', label: 'Tasks' },
-    { id: 'rewards', label: 'Rewards' }
-  ];
+  const listTitle = {
+    kids: "Your children",
+    tasks: "Daily tasks",
+    rewards: "Family rewards",
+  };
+  const description = {
+    kids: "Manage profiles and point balances.",
+    tasks: "Set the routines your children earn points for.",
+    rewards: "Choose what your children can work toward.",
+  };
 
   return (
-    <div className="pt-6 pb-20">
-
-      {/* Header */}
-      <div className="mb-10">
-        <h1 className="text-4xl font-medium font-display text-gray-900 leading-tight">
-          Parent dashboard
+    <div className="mx-auto max-w-4xl pb-12">
+      <header className="mb-7">
+        <h1 className="text-2xl font-semibold text-foreground">
+          Parent settings
         </h1>
-      </div>
-
-      {/* Main Content with Sidebar */}
-      <div className="flex flex-col md:flex-row gap-6 md:gap-12 items-start">
-
-        {/* Sidebar Navigation */}
-        <nav className="w-full md:w-40 flex flex-row md:flex-col gap-1 md:gap-1 border-b md:border-b-0 border-gray-100 pb-4 md:pb-0 overflow-x-auto no-scrollbar">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              aria-current={activeTab === tab.id ? 'page' : undefined}
-              className={`text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 min-h-[44px] flex items-center ${activeTab === tab.id
-                ? 'bg-surface-secondary text-black font-semibold'
-                : 'text-content-muted hover:text-content hover:bg-surface-secondary'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </nav>
-
-        {/* Tab Content */}
-        <div className="flex-1 min-w-0">
-
-          {/* ── Kids ── */}
-          {activeTab === 'kids' && (
-            <div className="space-y-6">
-
-              {/* Add kid form */}
-              <div className="card space-y-3">
-                <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">Add child</p>
-                <div className="flex gap-3">
-                  <input
-                    type="text"
-                    value={newKidName}
-                    onChange={e => setNewKidName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addKidHandler()}
-                    placeholder="Child's name"
-                    className="input flex-1"
-                  />
-                  <button
-                    onClick={addKidHandler}
-                    disabled={!newKidName.trim()}
-                    className="btn-primary"
+        <p className="mt-1 text-sm text-muted-foreground">
+          A routine that works for your family.
+        </p>
+      </header>
+      <Tabs
+        value={section}
+        onValueChange={(value) => changeSection(value as Section)}
+      >
+        <TabsList
+          aria-label="Parent settings"
+          className="mb-6 !h-auto w-full p-1 sm:w-fit"
+        >
+          <TabsTrigger
+            value="kids"
+            disabled={pending}
+            className="min-h-11 gap-2 px-3"
+          >
+            <Users aria-hidden="true" /> Children
+          </TabsTrigger>
+          <TabsTrigger
+            value="tasks"
+            disabled={pending}
+            className="min-h-11 gap-2 px-3"
+          >
+            <ListChecks aria-hidden="true" /> Tasks
+          </TabsTrigger>
+          <TabsTrigger
+            value="rewards"
+            disabled={pending}
+            className="min-h-11 gap-2 px-3"
+          >
+            <Gift aria-hidden="true" /> Rewards
+          </TabsTrigger>
+        </TabsList>
+        {(["kids", "tasks", "rewards"] as Section[]).map((tab) => (
+          <TabsContent key={tab} value={tab}>
+            {section === tab && (
+              <>
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className={
+                    message
+                      ? "mb-4 rounded-lg bg-brand-light px-4 py-3 text-sm text-brand"
+                      : "sr-only"
+                  }
+                >
+                  {message}
+                </div>
+                {error && (
+                  <div
+                    role="alert"
+                    className="mb-4 rounded-lg border border-destructive/30 px-4 py-3 text-sm text-destructive"
                   >
-                    Add
-                  </button>
-                </div>
-              </div>
-
-              {/* Kid cards */}
-              {kids.length > 0 && (
-                <div className="space-y-3">
-                  {kids.map(kid => {
-                    const kidStats = weeklyStats.find(s => s.kid.id === kid.id);
-                    return (
-                      <div
-                        key={kid.id}
-                        className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
-                      >
-                        {/* Avatar & Name */}
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                            {kid.avatar ? (
-                              <img src={kid.avatar} alt={kid.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center bg-brand-light text-brand font-bold text-base">
-                                {kid.name.charAt(0)}
-                              </div>
-                            )}
-                          </div>
-                          <span className="font-semibold text-gray-900">{kid.name}</span>
-                        </div>
-
-                        {/* Stats */}
-                        <div className="flex items-center gap-8 sm:ml-auto text-center">
-                          <div>
-                            <div className="text-xl font-bold text-gray-900 tabular-nums">{kidStats?.weekPoints || 0}</div>
-                            <div className="text-xs text-content-muted mt-0.5">pts this week</div>
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold text-gray-900 tabular-nums">
-                              {tasks.filter(t => !t.assignedKids || t.assignedKids.includes(kid.id)).length}
-                            </div>
-                            <div className="text-xs text-content-muted mt-0.5">tasks</div>
-                          </div>
-                          <div>
-                            <div className="text-xl font-bold text-brand tabular-nums">{kid.points}</div>
-                            <div className="text-xs text-content-muted mt-0.5">pts balance</div>
-                          </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => adjustPoints(kid.id, 5)}
-                            title="Add 5 points"
-                            className="w-11 h-11 flex items-center justify-center border border-border rounded-lg hover:bg-surface-secondary text-sm font-medium text-gray-700 transition-colors"
-                          >
-                            +5
-                          </button>
-                          <button
-                            onClick={() => adjustPoints(kid.id, -5)}
-                            title="Remove 5 points"
-                            className="w-11 h-11 flex items-center justify-center border border-border rounded-lg hover:bg-surface-secondary text-sm font-medium text-gray-700 transition-colors"
-                          >
-                            −5
-                          </button>
-                          <button
-                            onClick={() => setConfirmAction({ type: 'clearToday', data: kid.id })}
-                            className="h-11 px-4 flex items-center border border-border rounded-lg hover:bg-surface-secondary text-sm text-gray-700 transition-colors"
-                          >
-                            Clear today
-                          </button>
-                          <button
-                            onClick={() => setConfirmAction({ type: 'removeKid', data: kid.id })}
-                            className="w-11 h-11 flex items-center justify-center hover:bg-danger-light rounded-lg transition-colors"
-                            title="Remove child"
-                          >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger">
-                              <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-                            </svg>
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Tasks ── */}
-          {activeTab === 'tasks' && (
-            <div className="space-y-6">
-
-              {/* Add task form */}
-              <div className="card space-y-4">
-                <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">Add task</p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    value={newTaskTitle}
-                    onChange={e => setNewTaskTitle(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addTaskHandler()}
-                    placeholder="Task name"
-                    className="input flex-1"
-                  />
-                  <input
-                    type="number"
-                    value={newTaskPoints}
-                    onChange={e => setNewTaskPoints(e.target.value)}
-                    placeholder="Points"
-                    className="input w-28"
-                  />
-                  <button onClick={addTaskHandler} className="btn-primary whitespace-nowrap">
-                    Add task
-                  </button>
-                </div>
-                {kids.length > 0 && (
-                  <div>
-                    <p className="text-xs text-content-muted mb-2">Assign to specific children (leave empty for all)</p>
-                    <div className="flex gap-2 flex-wrap">
-                      {kids.map(kid => (
-                        <label key={kid.id} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:bg-surface-secondary transition-colors text-sm text-gray-700">
-                          <input
-                            type="checkbox"
-                            checked={newTaskAssignedKids.includes(kid.id)}
-                            onChange={() => handleKidAssignmentToggle(kid.id)}
-                            className="w-4 h-4 text-brand rounded focus:ring-2 focus:ring-brand/50"
-                          />
-                          {kid.name}
-                        </label>
-                      ))}
-                    </div>
+                    <p>{error}</p>
+                    <Button
+                      variant="ghost"
+                      className="mt-2 min-h-11"
+                      ref={refreshTrigger}
+                      disabled={pending}
+                      onClick={() => run(async () => {}, "Settings refreshed.")}
+                    >
+                      Refresh settings
+                    </Button>
                   </div>
                 )}
-              </div>
-
-              {/* Task list */}
-              {tasks.length > 0 && (
-                <div className="space-y-2">
-                  {tasks.map(task => (
-                    <div key={task.id} className="card flex items-center gap-4">
-                      <div className={`flex-1 min-w-0 ${!task.active ? 'opacity-40' : ''}`}>
-                        <div className="font-semibold text-gray-900 truncate">{task.title}</div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-sm text-content-muted">{task.points} pts</span>
-                          {task.assignedKids && task.assignedKids.length > 0 && (
-                            <>
-                              <span className="text-xs text-gray-300">·</span>
-                              <div className="flex -space-x-1.5">
-                                {task.assignedKids.map(kidId => {
-                                  const kid = kids.find(k => k.id === kidId);
-                                  if (!kid) return null;
-                                  return (
-                                    <div
-                                      key={kidId}
-                                      className="w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold text-brand border border-white bg-brand-light"
-                                      title={kid.name}
-                                    >
-                                      {kid.name.charAt(0)}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </>
-                          )}
+                <div className="mb-5">
+                  <h2 className="text-base font-semibold">
+                    {listTitle[tab]}{" "}
+                    <span className="ml-1 font-normal tabular-nums text-muted-foreground">
+                      {counts[tab]}
+                    </span>
+                  </h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    {description[tab]}
+                  </p>
+                </div>
+                <form
+                  ref={editor}
+                  onSubmit={save}
+                  className="mb-6 rounded-xl border border-border bg-card p-4 sm:p-5"
+                >
+                  <h3 className="mb-4 text-sm font-semibold">
+                    {draft.id ? "Edit" : "Add"} {noun}
+                  </h3>
+                  <fieldset
+                    disabled={pending || loading || needsRefresh}
+                    className="min-w-0"
+                  >
+                    <div className="grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_120px_auto]">
+                      <div className={tab === "kids" ? "sm:col-span-2" : ""}>
+                        <label
+                          htmlFor={`${tab}-name`}
+                          className="mb-2 block text-sm font-medium"
+                        >
+                          {tab === "kids"
+                            ? "Child’s name"
+                            : tab === "tasks"
+                              ? "Task name"
+                              : "Reward name"}
+                        </label>
+                        <Input
+                          id={`${tab}-name`}
+                          required
+                          maxLength={160}
+                          value={draft.name}
+                          onChange={(event) =>
+                            setDraft({ ...draft, name: event.target.value })
+                          }
+                          placeholder={
+                            tab === "kids"
+                              ? "e.g. Mia"
+                              : tab === "tasks"
+                                ? "e.g. Make the bed"
+                                : "e.g. Choose a movie"
+                          }
+                          className="h-11 text-base"
+                        />
+                      </div>
+                      {tab !== "kids" && (
+                        <div>
+                          <label
+                            htmlFor={`${tab}-points`}
+                            className="mb-2 block text-sm font-medium"
+                          >
+                            {tab === "tasks" ? "Points earned" : "Points cost"}
+                          </label>
+                          <Input
+                            id={`${tab}-points`}
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            step={1}
+                            max={1000000}
+                            required
+                            value={draft.points}
+                            onChange={(event) =>
+                              setDraft({ ...draft, points: event.target.value })
+                            }
+                            className="h-11 text-base"
+                          />
                         </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => openEditTaskModal(task)}
-                          className="w-9 h-9 flex items-center justify-center hover:bg-surface-secondary rounded-lg text-content-muted transition-colors"
-                          title="Edit task"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                        </button>
-                        <button
-                          onClick={() => toggleTask(task.id)}
-                          className={`h-9 px-3 text-sm font-medium rounded-lg border transition-colors ${task.active
-                            ? 'border-border text-content-muted hover:bg-surface-secondary'
-                            : 'border-success/30 text-success bg-success-light'
-                          }`}
-                        >
-                          {task.active ? 'Disable' : 'Enable'}
-                        </button>
-                        <button
-                          onClick={() => setConfirmAction({ type: 'removeTask', data: task.id })}
-                          className="w-9 h-9 flex items-center justify-center hover:bg-danger-light rounded-lg transition-colors"
-                          title="Delete task"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
-                        </button>
-                      </div>
+                      )}
+                      <Button
+                        type="submit"
+                        disabled={pending || needsRefresh || !draft.name.trim()}
+                        className="h-11 gap-2 px-4"
+                      >
+                        {pending ? (
+                          <Loader2
+                            aria-hidden="true"
+                            className="motion-safe:animate-spin"
+                          />
+                        ) : !draft.id ? (
+                          <Plus aria-hidden="true" />
+                        ) : null}
+                        {pending
+                          ? "Saving…"
+                          : draft.id
+                            ? "Save changes"
+                            : `Add ${noun}`}
+                      </Button>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* ── Rewards ── */}
-          {activeTab === 'rewards' && (
-            <div className="space-y-6">
-
-              {/* Add reward form */}
-              <div className="card space-y-4">
-                <p className="text-xs font-semibold text-content-muted uppercase tracking-wider">Add reward</p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    value={newRewardLabel}
-                    onChange={e => setNewRewardLabel(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addRewardHandler()}
-                    placeholder="Reward name"
-                    className="input flex-1"
-                  />
-                  <input
-                    type="number"
-                    value={newRewardCost}
-                    onChange={e => setNewRewardCost(e.target.value)}
-                    placeholder="Points cost"
-                    className="input w-32"
-                  />
-                  <button onClick={addRewardHandler} className="btn-primary whitespace-nowrap">
-                    Add reward
-                  </button>
-                </div>
-              </div>
-
-              {/* Reward list */}
-              {rewards.length > 0 && (
-                <div className="space-y-2">
-                  {rewards.map(reward => (
-                    <div key={reward.id} className="card flex items-center gap-4">
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 truncate">{reward.label}</div>
-                        <div className="text-sm text-brand font-medium mt-0.5">{reward.cost} pts</div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <button
-                          onClick={() => openEditRewardModal(reward)}
-                          className="w-9 h-9 flex items-center justify-center hover:bg-surface-secondary rounded-lg text-content-muted transition-colors"
-                          title="Edit reward"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                        </button>
-                        <button
-                          onClick={() => setConfirmAction({ type: 'removeReward', data: reward.id })}
-                          className="w-9 h-9 flex items-center justify-center hover:bg-danger-light rounded-lg transition-colors"
-                          title="Delete reward"
-                        >
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-danger"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-        </div>
-      </div>
-
-      {/* Modals */}
-      {editingTask && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full p-8 space-y-5">
-            <h3 className="text-lg font-semibold text-gray-900">Edit task</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-content-muted block mb-1.5">Task name</label>
-                <input type="text" value={editTaskTitle} onChange={e => setEditTaskTitle(e.target.value)} className="input" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-content-muted block mb-1.5">Points</label>
-                <input type="number" value={editTaskPoints} onChange={e => setEditTaskPoints(e.target.value)} className="input" />
-              </div>
-              {kids.length > 0 && (
-                <div>
-                  <label className="text-sm font-medium text-content-muted block mb-2">Assign to children</label>
-                  <div className="flex flex-wrap gap-2">
-                    {kids.map(kid => (
-                      <label key={kid.id} className="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg border border-border hover:bg-surface-secondary transition-colors text-sm text-gray-700">
-                        <input type="checkbox" checked={editTaskAssignedKids.includes(kid.id)} onChange={() => handleEditKidAssignmentToggle(kid.id)} className="w-4 h-4 text-brand rounded focus:ring-2 focus:ring-brand/50" />
-                        {kid.name}
-                      </label>
+                    {tab === "tasks" && (
+                      <fieldset className="mt-4 min-w-0">
+                        <legend className="mb-2 text-sm font-medium">
+                          Assign to
+                        </legend>
+                        <p className="mb-3 text-xs text-muted-foreground">
+                          No selection means all children, including children
+                          added later.
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {kids.map((kid) => (
+                            <label
+                              key={kid.id}
+                              className="flex min-h-11 max-w-full cursor-pointer items-center gap-2 rounded-lg border border-border px-3 text-sm hover:bg-muted focus-within:ring-2 focus-within:ring-ring"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={draft.assignedKids.includes(kid.id)}
+                                onChange={() =>
+                                  setDraft({
+                                    ...draft,
+                                    assignedKids: draft.assignedKids.includes(
+                                      kid.id,
+                                    )
+                                      ? draft.assignedKids.filter(
+                                          (id) => id !== kid.id,
+                                        )
+                                      : [...draft.assignedKids, kid.id],
+                                  })
+                                }
+                                className="size-4 shrink-0 accent-brand"
+                              />{" "}
+                              <span className="min-w-0 break-words">
+                                {kid.name}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      </fieldset>
+                    )}
+                    {draft.id && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="mt-3 min-h-11"
+                        onClick={() => setDraft(emptyDraft())}
+                      >
+                        Cancel editing
+                      </Button>
+                    )}
+                  </fieldset>
+                </form>
+                {loading ? (
+                  <div
+                    aria-label="Loading settings"
+                    role="status"
+                    className="space-y-3 motion-safe:animate-pulse"
+                  >
+                    {[1, 2, 3].map((index) => (
+                      <div key={index} className="h-24 rounded-lg bg-muted" />
                     ))}
                   </div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={closeEditTaskModal} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={saveTaskEdit} className="btn-primary flex-1">Save</button>
-            </div>
+                ) : counts[tab] === 0 ? (
+                  <div className="py-8 text-center">
+                    <h3 className="font-medium">
+                      {tab === "kids"
+                        ? "Add your first child"
+                        : tab === "tasks"
+                          ? "A small task is a great start"
+                          : "Give them something to work toward"}
+                    </h3>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Use the form above to add a {noun}.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border rounded-xl border border-border bg-card">
+                    {tab === "kids" &&
+                      kids.map((kid) => (
+                        <article key={kid.id} className="p-4 sm:p-5">
+                          <div className="flex items-center gap-3">
+                            <span
+                              aria-hidden="true"
+                              className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand-light font-semibold text-brand"
+                            >
+                              {kid.name.charAt(0).toUpperCase()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="break-words font-semibold">
+                                {kid.name}
+                              </h3>
+                              <p className="mt-1 text-sm text-muted-foreground">
+                                <span className="font-medium tabular-nums text-foreground">
+                                  {kid.points}
+                                </span>{" "}
+                                points available
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              className="size-11 shrink-0"
+                              aria-label={`Edit ${kid.name}`}
+                              disabled={pending || needsRefresh}
+                              onClick={() => startEdit(kid)}
+                            >
+                              <Pencil />
+                            </Button>
+                          </div>
+                          <p className="mt-4 text-sm text-muted-foreground">
+                            {weeklyPoints(kid.id)} points earned this week ·{" "}
+                            {
+                              tasks.filter(
+                                (task) =>
+                                  task.active &&
+                                  (!task.assignedKids?.length ||
+                                    task.assignedKids.includes(kid.id)),
+                              ).length
+                            }{" "}
+                            active tasks
+                          </p>
+                          <div className="mt-4 flex flex-wrap items-center gap-2">
+                            <Button
+                              variant="outline"
+                              className={actionStyle}
+                              disabled={pending || needsRefresh}
+                              aria-label={`Add 5 points to ${kid.name}`}
+                              onClick={() => adjustPoints(kid, 5)}
+                            >
+                              +5 points
+                            </Button>
+                            <Button
+                              variant="outline"
+                              className={actionStyle}
+                              disabled={
+                                pending || needsRefresh || kid.points === 0
+                              }
+                              aria-label={`Remove 5 points from ${kid.name}`}
+                              onClick={() => adjustPoints(kid, -5)}
+                            >
+                              −5 points
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className={actionStyle}
+                              disabled={
+                                pending ||
+                                needsRefresh ||
+                                !Object.values(
+                                  completions[today()]?.[kid.id] || {},
+                                ).some(Boolean)
+                              }
+                              onClick={() =>
+                                ask({
+                                  title: `Clear today for ${kid.name}?`,
+                                  message:
+                                    "This removes today’s completed tasks and the points earned from them. Other days remain unchanged.",
+                                  label: "Clear today",
+                                  action: () => clearToday(kid),
+                                })
+                              }
+                            >
+                              Clear today
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="min-h-11 gap-2 px-3 text-destructive hover:bg-destructive/10"
+                              disabled={pending || needsRefresh}
+                              aria-label={`Remove ${kid.name}`}
+                              onClick={() =>
+                                ask({
+                                  title: `Remove ${kid.name}?`,
+                                  message:
+                                    "This removes their profile and point balance. This action cannot be undone.",
+                                  label: "Remove child",
+                                  action: () => storage.removeKid(kid.id),
+                                })
+                              }
+                            >
+                              <Trash2 />
+                              Remove
+                            </Button>
+                          </div>
+                        </article>
+                      ))}
+                    {tab === "tasks" &&
+                      tasks.map((task) => (
+                        <article
+                          key={task.id}
+                          className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:p-5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <h3 className="break-words font-medium">
+                              {task.title}
+                            </h3>
+                            <p className="mt-1 break-words text-sm text-muted-foreground">
+                              {task.points} points ·{" "}
+                              {task.assignedKids?.length
+                                ? task.assignedKids
+                                    .map(
+                                      (id) =>
+                                        kids.find((kid) => kid.id === id)?.name,
+                                    )
+                                    .filter(Boolean)
+                                    .join(", ") ||
+                                  "No current children assigned"
+                                : "All children"}
+                              {!task.active ? " · Paused" : ""}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <Button
+                              variant={task.active ? "ghost" : "outline"}
+                              className={actionStyle}
+                              aria-label={`${task.active ? "Pause" : "Enable"} ${task.title}`}
+                              disabled={pending || needsRefresh}
+                              onClick={() =>
+                                run(
+                                  () =>
+                                    storage.updateTask({
+                                      ...task,
+                                      active: !task.active,
+                                    }),
+                                  task.active
+                                    ? "Task paused."
+                                    : "Task enabled.",
+                                )
+                              }
+                            >
+                              {task.active ? "Pause" : "Enable"}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="size-11"
+                              aria-label={`Edit ${task.title}`}
+                              disabled={pending || needsRefresh}
+                              onClick={() => startEdit(task)}
+                            >
+                              <Pencil />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              className="size-11 text-destructive hover:bg-destructive/10"
+                              aria-label={`Delete ${task.title}`}
+                              disabled={pending || needsRefresh}
+                              onClick={() =>
+                                ask({
+                                  title: `Delete “${task.title}”?`,
+                                  message:
+                                    "This task will no longer be available. This action cannot be undone.",
+                                  label: "Delete task",
+                                  action: () => storage.removeTask(task.id),
+                                })
+                              }
+                            >
+                              <Trash2 />
+                            </Button>
+                          </div>
+                        </article>
+                      ))}
+                    {tab === "rewards" &&
+                      rewards.map((reward) => (
+                        <article
+                          key={reward.id}
+                          className="flex items-center gap-3 p-4 sm:p-5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <h3 className="break-words font-medium">
+                              {reward.label}
+                            </h3>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {reward.cost} points
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            className="size-11 shrink-0"
+                            aria-label={`Edit ${reward.label}`}
+                            disabled={pending || needsRefresh}
+                            onClick={() => startEdit(reward)}
+                          >
+                            <Pencil />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            className="size-11 shrink-0 text-destructive hover:bg-destructive/10"
+                            aria-label={`Delete ${reward.label}`}
+                            disabled={pending || needsRefresh}
+                            onClick={() =>
+                              ask({
+                                title: `Delete “${reward.label}”?`,
+                                message:
+                                  "This reward will no longer be available. Past redemptions remain in the history.",
+                                label: "Delete reward",
+                                action: () => storage.removeReward(reward.id),
+                              })
+                            }
+                          >
+                            <Trash2 />
+                          </Button>
+                        </article>
+                      ))}
+                  </div>
+                )}
+              </>
+            )}
+          </TabsContent>
+        ))}
+      </Tabs>
+      <Dialog
+        open={!!confirmation}
+        onOpenChange={(open) => {
+          if (!open && !pending) closeConfirmation();
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="p-5"
+          initialFocus={false}
+        >
+          <DialogTitle className="break-words leading-6">
+            {confirmation?.title}
+          </DialogTitle>
+          <DialogDescription>{confirmation?.message}</DialogDescription>
+          {error && (
+            <p role="alert" className="text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button
+              autoFocus
+              variant="outline"
+              className={actionStyle}
+              disabled={pending}
+              onClick={closeConfirmation}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              className={actionStyle}
+              disabled={pending || needsRefresh}
+              onClick={async () => {
+                if (
+                  confirmation &&
+                  (await run(confirmation.action, "Settings updated."))
+                )
+                  closeConfirmation();
+              }}
+            >
+              {pending ? "Saving…" : confirmation?.label}
+            </Button>
           </div>
-        </div>
-      )}
-
-      {editingReward && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="card max-w-md w-full p-8 space-y-5">
-            <h3 className="text-lg font-semibold text-gray-900">Edit reward</h3>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-content-muted block mb-1.5">Reward name</label>
-                <input type="text" value={editRewardLabel} onChange={e => setEditRewardLabel(e.target.value)} className="input" />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-content-muted block mb-1.5">Points cost</label>
-                <input type="number" value={editRewardCost} onChange={e => setEditRewardCost(e.target.value)} className="input" />
-              </div>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <button onClick={closeEditRewardModal} className="btn-secondary flex-1">Cancel</button>
-              <button onClick={saveRewardEdit} className="btn-primary flex-1">Save</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {confirmAction && (
-        <ConfirmDialog
-          isOpen={true}
-          onClose={() => setConfirmAction(null)}
-          onConfirm={() => {
-            switch (confirmAction.type) {
-              case 'removeKid': removeKidHandler(confirmAction.data); break;
-              case 'clearToday': clearKidToday(confirmAction.data); break;
-              case 'removeTask': removeTaskHandler(confirmAction.data); break;
-              case 'removeReward': removeRewardHandler(confirmAction.data); break;
-              case 'newWeek': newWeek(); break;
-            }
-            setConfirmAction(null);
-          }}
-          title="Are you sure?"
-          message="This action cannot be undone."
-          confirmText="Yes, Proceed"
-        />
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
