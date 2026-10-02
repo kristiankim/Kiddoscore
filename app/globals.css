@@ -470,3 +470,26 @@
 .task-progress::-webkit-progress-bar { background: var(--muted); border-radius: 999px; }
 .task-progress::-webkit-progress-value { background: hsl(var(--brand)); border-radius: 999px; transition: width 180ms ease-out; }
 .task-progress::-moz-progress-bar { background: hsl(var(--brand)); border-radius: 999px; }
+
+/* Habit illustrations frame the sign-in form without competing with inputs. */
+.signin-scene { position: relative; isolation: isolate; display: grid; place-items: center; min-height: calc(100svh - 80px); padding-block: 48px; }
+.signin-content { position: relative; z-index: 1; max-width: 400px; }
+.signin-objects { position: absolute; inset: 0; pointer-events: none; user-select: none; }
+.signin-object { position: absolute; height: auto; object-fit: contain; }
+.signin-toothbrush { width: 150px; left: 5%; top: 9%; transform: rotate(-14deg); }
+.signin-shirt { width: 210px; right: 2%; top: 13%; transform: rotate(11deg); }
+.signin-book { width: 230px; left: 2%; bottom: 9%; transform: rotate(-12deg); }
+.signin-pencil { width: 140px; right: 6%; bottom: 6%; transform: rotate(17deg); }
+@media (min-width: 640px) and (max-width: 959px) {
+  .signin-toothbrush { width: 90px; left: 0; top: 3%; }
+  .signin-shirt { width: 120px; right: 0; top: 5%; }
+  .signin-book { width: 130px; left: 0; bottom: 0; }
+  .signin-pencil { width: 80px; right: 0; bottom: 0; }
+  .signin-scene { padding-block: 110px; }
+}
+@media (max-width: 639px) {
+  .signin-scene { min-height: calc(100svh - 64px); padding-top: 116px; padding-bottom: 32px; align-content: start; }
+  .signin-toothbrush { width: 66px; left: 8%; top: 0; transform: rotate(-20deg); }
+  .signin-book { width: 100px; left: auto; right: 4%; top: 13px; bottom: auto; transform: rotate(10deg); }
+  .signin-shirt, .signin-pencil { display: none; }
+}
