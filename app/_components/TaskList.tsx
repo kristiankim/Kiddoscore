@@ -30,6 +30,9 @@ export function TaskList() {
   const [completions, setCompletions] = useState<Completions>({});
   const [selectedDate, setSelectedDate] = useState(() => today());
   const [showCalendar, setShowCalendar] = useState(false);
+  const [calendarMotion, setCalendarMotion] = useState<"pointer" | "keyboard">(
+    "keyboard",
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [needsRefresh, setNeedsRefresh] = useState(false);
@@ -140,7 +143,10 @@ export function TaskList() {
             disabled={!!pending}
             variant="outline"
             className="min-h-11 gap-2 px-3"
-            onClick={() => setShowCalendar(true)}
+            onClick={(event) => {
+              setCalendarMotion(event.detail === 0 ? "keyboard" : "pointer");
+              setShowCalendar(true);
+            }}
             aria-haspopup="dialog"
             aria-expanded={showCalendar}
           >
@@ -379,9 +385,11 @@ export function TaskList() {
       )}
       <CalendarModal
         isOpen={showCalendar}
-        onClose={() => {
+        motion={calendarMotion}
+        returnFocusRef={calendarTrigger}
+        onClose={(motion) => {
+          setCalendarMotion(motion);
           setShowCalendar(false);
-          requestAnimationFrame(() => calendarTrigger.current?.focus());
         }}
         onDateSelect={setSelectedDate}
         selectedDate={selectedDate}
