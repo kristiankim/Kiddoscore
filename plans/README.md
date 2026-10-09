@@ -5,5 +5,6 @@ Plans record scoped implementation work and verification results.
 | Order | Plan | Severity | Status | Dependencies |
 | --- | --- | --- | --- | --- |
 | 1 | [Calendar entrance and dismissal](001-calendar-entrance-dismissal.md) | LOW | DONE | None |
+| 2 | [Reward history feedback](002-reward-history-feedback.md) | LOW | DONE | Existing ease-out token |
 
-Plan 001 is implemented and verified locally. It is independent of the redemption and settings feedback suggestions from the audit. Its source baseline is commit `cffbc20`; see its verification section for results and test limitations.
+Both plans are implemented and verified locally. Their verification sections record results and test limitations. The settings feedback suggestion remains separate.

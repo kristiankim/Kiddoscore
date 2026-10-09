@@ -52,3 +52,32 @@ Desktop child-count checks were made at the browser's default viewport (approxim
 ## Limits
 
 The browser save-failure and latency checks use the isolated storage adapter. They do not establish Supabase authorization, live network behaviour, or simultaneous writes from multiple tabs/devices. Balance and completion/redemption persistence still use separate writes with compensation; they are not a database transaction.
+
+## Task-add toast — October 6, 2026
+
+- A new task's success feedback now uses Sonner instead of the inline success banner. It fires only after the write, settings reload, and balance refresh succeed. Other settings actions keep their existing feedback.
+- One unconditional Toaster is mounted in the root layout outside the page content. It uses Geist, app surface/text/border tokens, and a close button. The layout remains a server component; the client save handler triggers the toast directly, with no notification effect or duplicate provider.
+- Browser checks used a separate app copy on localhost:3003 with disposable data and temporary delayed/failed task-write fixtures. No test fixtures were added to application source, and localhost:3000 data was untouched.
+- Pointer and Enter submissions added tasks and displayed one “Task added.” toast with an empty inline status region. With settled initial data, the form's document position remained exactly 345px before and after submission. Focus returned to the task-name input; native focus scrolling was excluded from the document-layout measurement.
+- A one-second delayed save displayed Saving and disabled controls, with zero premature toasts. A double-click saved one task. A rejected save added no task or toast, retained the draft, and displayed the existing refresh-required error.
+- At 320px, the toast occupied x=16 to x=289 with no page overflow. Alt+T focused the notification list; Enter on Close toast dismissed it. Sonner supplies polite live announcements and reduced-motion styles.
+- TypeScript, all 41 existing tests, and whitespace checks pass. The React integration review found one root Toaster, event-handler notification dispatch, serializable layout props, and preserved pending/failure guards.
+- Screenshot: `/tmp/sparkquest-task-added-toast.png`. The test tab/server were closed and the viewport restored. Changes remain local.
+
+## Parent settings sliding selection — October 7, 2026
+
+- Used the `animate` skill for subtle state indication in the Children / Tasks / Rewards control. Base UI's native Indicator supplies the selected tab's geometry; the shared Tabs wrapper now exposes this primitive. Other tab lists do not render it and retain their styling.
+- One background box slides with a transform-only 160ms transition and the skill's `cubic-bezier(0.77, 0, 0.175, 1)` ease-in-out token. Equal-width columns avoid animated resizing; the label and panel selection update immediately. The indicator renders before hydration and does not animate its initial appearance.
+- Native tab event details distinguish pointer activation from keyboard/assistive clicks. Enter and Space selection compute 0s; arrow keys still move focus without changing selection until activation. Reduced-motion CSS disables the spatial transition. Existing disabled/pending behavior is preserved.
+- Browser observations captured intermediate horizontal positions while the new Rewards panel was already displayed. The transition computed 160ms with the specified easing. Retargeting toward Tasks during the observation sequence ended aligned with Tasks and retained exactly one indicator.
+- At 320px, all three labels and icons fit, all buttons remain 44px high, and the indicator aligns with the selected tab without page overflow. Desktop buttons measured approximately 107px each; mobile buttons measured approximately 93px each.
+- Reduced-motion behavior was checked in an isolated localhost:3003 copy with only the relevant media rule enabled: pointer activation computed transition-property none and duration 0s, with the indicator aligned immediately. Direct browser preference emulation and physical touch testing were unavailable. No stored family data was changed during these checks.
+- TypeScript, all 41 existing tests, and whitespace checks pass. React review confirmed that Base UI keeps tab semantics and geometry measurement; there is no duplicate interactive tab list, timer, layout animation, or new dependency. Browser proof: `/tmp/sparkquest-parent-sliding-tabs.png` (320px view). Temporary tabs/server were closed afterward.
+
+| Before | After | Why |
+| --- | --- | --- |
+| Each active button paints its own static background | One native indicator slides between equal-width tabs | Makes the selection change legible without moving content |
+| Parent tab triggers inherit transition-all | Scoped triggers stay immediate; indicator transitions transform only | Bounds motion and avoids layout animation |
+| Shared indicator could animate keyboard or reduced-motion selections | Both update instantly | Preserves efficient keyboard operation and avoids requested motion |
+
+**Approve** — justified, brief state indication; transform-only CSS transition; immediate content, keyboard and reduced-motion behavior; no new motion added to other tabs.

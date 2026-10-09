@@ -76,6 +76,7 @@
 
 :root {
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   /* Color Palette - HSL for easy transparency */
   --brand: 250 75% 55%;
   --brand-dark: 250 75% 35%;
@@ -522,6 +523,56 @@
 }
 .calendar-backdrop[data-motion="keyboard"],
 .calendar-panel[data-motion="keyboard"] { transition: none !important; }
+
+.parent-settings-tabs {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.parent-settings-tabs [data-slot="tabs-trigger"] {
+  z-index: 1;
+  transition: none;
+}
+.parent-settings-tabs [data-slot="tabs-trigger"][data-active] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.parent-settings-indicator {
+  position: absolute;
+  top: var(--active-tab-top);
+  left: 0;
+  width: var(--active-tab-width);
+  height: var(--active-tab-height);
+  pointer-events: none;
+  transform: translateX(var(--active-tab-left));
+  transition: transform 160ms var(--ease-in-out);
+}
+.parent-settings-tabs[data-motion="keyboard"] .parent-settings-indicator {
+  transition: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .parent-settings-indicator { transition: none !important; }
+}
+
+.reward-history-entry {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 180ms var(--ease-out), transform 180ms var(--ease-out);
+}
+.reward-history-entry[data-entry="waiting"] {
+  opacity: 0;
+  transform: translateY(4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reward-history-entry {
+    transition-property: opacity;
+    transition-duration: 60ms !important;
+  }
+  .reward-history-entry,
+  .reward-history-entry[data-entry="waiting"] { transform: none; }
+}
 
 /* Habit illustrations frame the sign-in form without competing with inputs. */
 .signin-scene { position: relative; isolation: isolate; display: grid; place-items: center; min-height: calc(100svh - 80px); padding-block: 48px; }

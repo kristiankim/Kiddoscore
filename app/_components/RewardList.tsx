@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, type MouseEvent } from "react";
 import Link from "next/link";
 import { Loader2, ChevronDown } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -40,6 +40,21 @@ export function RewardList() {
   const trigger = useRef<HTMLElement | null>(null);
   const refreshTrigger = useRef<HTMLButtonElement>(null);
   const heading = useRef<HTMLHeadingElement>(null);
+  const [historyEntry, setHistoryEntry] = useState<{
+    id: string;
+    phase: "waiting" | "entering";
+  } | null>(null);
+
+  function clearHistoryMotion() {
+    setHistoryEntry(null);
+  }
+
+  function revealRedemption(open: boolean) {
+    if (open) return;
+    setHistoryEntry((entry) =>
+      entry ? { ...entry, phase: "entering" } : null,
+    );
+  }
 
   async function loadData() {
     const [nextRewards, nextRedemptions] = await Promise.all([
@@ -75,6 +90,7 @@ export function RewardList() {
     });
   }
   function ask(value: Confirmation) {
+    clearHistoryMotion();
     trigger.current = document.activeElement as HTMLElement;
     setError("");
     setMessage("");
@@ -82,6 +98,7 @@ export function RewardList() {
   }
   async function refresh() {
     if (busy.current) return;
+    clearHistoryMotion();
     busy.current = true;
     setPending(true);
     try {
@@ -96,15 +113,22 @@ export function RewardList() {
       setPending(false);
     }
   }
-  async function confirm() {
+  async function confirm(event: MouseEvent<HTMLButtonElement>) {
     if (!confirmation || busy.current || needsRefresh) return;
+    const pointerInitiated = event.detail > 0;
     busy.current = true;
     setPending(true);
     setError("");
     try {
+      let saved: Redemption | null = null;
       if (confirmation.kind === "redeem")
-        await redeemForKid(confirmation.kidId, confirmation.reward);
+        saved = await redeemForKid(confirmation.kidId, confirmation.reward);
       else await undoRedemption(confirmation.redemption);
+      // Stage the saved ID before loading rows so its first paint is hidden.
+      // Keyboard and assistive clicks have detail 0 and stay immediate.
+      setHistoryEntry(
+        pointerInitiated && saved ? { id: saved.id, phase: "waiting" } : null,
+      );
       await loadData();
       await refreshKids();
       setMessage(
@@ -114,6 +138,7 @@ export function RewardList() {
       );
       close();
     } catch {
+      clearHistoryMotion();
       setError(
         "We could not finish this change. Refresh rewards and check the balance and history before trying again.",
       );
@@ -134,6 +159,7 @@ export function RewardList() {
       ? confirmation.reward.cost
       : confirmation?.redemption.cost || 0;
   function selectKid(id: string) {
+    clearHistoryMotion();
     const next = kids.find((item) => item.id === id);
     if (next) setSelectedKid(next);
     setMessage("");
@@ -351,7 +377,24 @@ export function RewardList() {
                   {history.map((item) => (
                     <article
                       key={item.id}
-                      className="flex flex-wrap items-center gap-3 py-4"
+                      data-entry={
+                        historyEntry?.id === item.id
+                          ? historyEntry.phase
+                          : undefined
+                      }
+                      onTransitionEnd={(event) => {
+                        if (
+                          event.target === event.currentTarget &&
+                          event.propertyName === "opacity"
+                        ) {
+                          setHistoryEntry((entry) =>
+                            entry?.id === item.id && entry.phase === "entering"
+                              ? null
+                              : entry,
+                          );
+                        }
+                      }}
+                      className={`flex flex-wrap items-center gap-3 py-4${historyEntry?.id === item.id ? " reward-history-entry" : ""}`}
                     >
                       <div className="min-w-0 flex-1">
                         <h3 className="break-words text-sm font-medium">
@@ -393,6 +436,7 @@ export function RewardList() {
       )}
       <Dialog
         open={!!confirmation}
+        onOpenChangeComplete={revealRedemption}
         onOpenChange={(open) => {
           if (!open && !pending) close();
         }}

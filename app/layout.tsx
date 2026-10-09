@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
+import { Toaster } from 'sonner'
 import './globals.css'
 import { Header } from './_components/Header'
 import { KidProvider } from './_lib/context'
@@ -27,6 +28,20 @@ export default function RootLayout({
             </main>
           </KidProvider>
         </AuthProvider>
+        <Toaster
+          position="bottom-right"
+          closeButton
+          style={{ fontFamily: 'var(--font-geist-sans), system-ui, sans-serif' }}
+          toastOptions={{
+            style: {
+              background: 'var(--card)',
+              color: 'var(--foreground)',
+              borderColor: 'var(--border)',
+              borderRadius: '12px',
+              fontSize: '14px',
+            },
+          }}
+        />
       </body>
     </html>
   )

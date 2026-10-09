@@ -34,7 +34,8 @@ describe("reward balances", () => {
     expect(storage.updateKid).not.toHaveBeenCalled();
   });
   it("deducts the confirmed cost and saves the redemption", async () => {
-    await redeemForKid("kid", reward);
+    const saved = await redeemForKid("kid", reward);
+    expect(saved).toEqual(redemption);
     expect(storage.updateKid).toHaveBeenCalledWith({ ...kid, points: 10 });
     expect(storage.addRedemption).toHaveBeenCalledWith(
       expect.objectContaining({ cost: 20 }),

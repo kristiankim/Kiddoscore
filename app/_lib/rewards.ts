@@ -33,6 +33,7 @@ export async function redeemForKid(kidId: string, reward: Reward) {
       at: new Date().toISOString(),
     });
     if (!redemption) throw new Error("The redemption could not be saved.");
+    return redemption;
   } catch (error) {
     await storage.updateKid(kid);
     throw error;

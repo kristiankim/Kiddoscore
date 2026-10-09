@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import {
   Pencil,
   Trash2,
@@ -12,7 +13,13 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  TabsIndicator,
+} from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +55,9 @@ export default function ParentPage() {
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [completions, setCompletions] = useState<Completions>({});
   const [section, setSection] = useState<Section>("kids");
+  const [tabMotion, setTabMotion] = useState<"pointer" | "keyboard">(
+    "keyboard",
+  );
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
@@ -92,6 +102,7 @@ export default function ParentPage() {
   async function run(
     action: () => Promise<void>,
     success: string,
+    feedback: "banner" | "toast" = "banner",
   ): Promise<boolean> {
     if (busy.current) return false;
     busy.current = true;
@@ -103,7 +114,8 @@ export default function ParentPage() {
       await loadData();
       await refreshKids();
       setNeedsRefresh(false);
-      setMessage(success);
+      if (feedback === "toast") toast.success(success);
+      else setMessage(success);
       return true;
     } catch {
       setNeedsRefresh(true);
@@ -190,6 +202,7 @@ export default function ParentPage() {
         }
       },
       `${section === "kids" ? "Child" : section === "tasks" ? "Task" : "Reward"} ${draft.id ? "updated" : "added"}.`,
+      section === "tasks" && !draft.id ? "toast" : "banner",
     );
     if (saved) {
       setDraft(emptyDraft());
@@ -294,33 +307,50 @@ export default function ParentPage() {
       </header>
       <Tabs
         value={section}
-        onValueChange={(value) => changeSection(value as Section)}
+        onValueChange={(value, details) => {
+          const event = details.event;
+          setTabMotion(
+            event.type === "keydown" ||
+              event.type === "keyup" ||
+              (event.type === "click" &&
+                "detail" in event &&
+                event.detail === 0)
+              ? "keyboard"
+              : "pointer",
+          );
+          changeSection(value as Section);
+        }}
       >
         <TabsList
           aria-label="Parent settings"
-          className="mb-6 !h-auto w-full p-1 sm:w-fit"
+          data-motion={tabMotion}
+          className="parent-settings-tabs mb-6 !h-auto w-full p-1 sm:w-fit"
         >
           <TabsTrigger
             value="kids"
             disabled={pending}
-            className="min-h-11 gap-2 px-3"
+            className="min-h-11 min-w-0 gap-1 px-1.5 sm:gap-2 sm:px-3"
           >
             <Users aria-hidden="true" /> Children
           </TabsTrigger>
           <TabsTrigger
             value="tasks"
             disabled={pending}
-            className="min-h-11 gap-2 px-3"
+            className="min-h-11 min-w-0 gap-1 px-1.5 sm:gap-2 sm:px-3"
           >
             <ListChecks aria-hidden="true" /> Tasks
           </TabsTrigger>
           <TabsTrigger
             value="rewards"
             disabled={pending}
-            className="min-h-11 gap-2 px-3"
+            className="min-h-11 min-w-0 gap-1 px-1.5 sm:gap-2 sm:px-3"
           >
             <Gift aria-hidden="true" /> Rewards
           </TabsTrigger>
+          <TabsIndicator
+            renderBeforeHydration
+            className="parent-settings-indicator rounded-md bg-background shadow-sm dark:border dark:border-input dark:bg-input/30"
+          />
         </TabsList>
         {(["kids", "tasks", "rewards"] as Section[]).map((tab) => (
           <TabsContent key={tab} value={tab}>
